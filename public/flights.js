@@ -7,15 +7,6 @@ let filteredFlights = [];
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Flights page loaded, initializing...');
     
-    // Force hide loading overlay on page load
-    setTimeout(() => {
-        const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.style.display = 'none';
-            console.log('🔧 Force hidden loading overlay on page load');
-        }
-    }, 100);
-    
     // Initialize airport dropdowns
     initializeAirportDropdowns();
     
@@ -134,6 +125,26 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Passenger dropdown functionality
     setupPassengerDropdown();
+    
+    // Booking modal event listeners
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelBookingBtn = document.getElementById('cancelBooking');
+    const bookingForm = document.getElementById('bookingForm');
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeBookingModal);
+    }
+    
+    if (cancelBookingBtn) {
+        cancelBookingBtn.addEventListener('click', closeBookingModal);
+    }
+    
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            processBooking();
+        });
+    }
 });
 
 function resetAllFilters() {
@@ -500,20 +511,20 @@ async function performSearch() {
     
     console.log('🛫 Search parameters:', searchData);
     
+    // Show loading state
+    const loadingState = document.getElementById('loadingState');
+    const flightResults = document.getElementById('flightResults');
+    const resultsHeader = document.getElementById('resultsHeader');
+    const flightSummary = document.getElementById('flightSummary');
+    
+    if (loadingState) loadingState.classList.remove('hidden');
+    if (flightResults) flightResults.classList.add('hidden');
+    if (resultsHeader) resultsHeader.classList.add('hidden');
+    if (flightSummary) flightSummary.classList.add('hidden');
+    
     try {
-        showLoadingOverlay(true);
-        
-        // Backup timeout to hide overlay after 30 seconds
-        const timeoutId = setTimeout(() => {
-            console.warn('⚠️ Search timeout - force hiding loading overlay');
-            showLoadingOverlay(false);
-        }, 30000);
-        
         console.log('🚀 Making API request to /api/search-flights');
         const response = await axios.post('/api/search-flights', searchData);
-        
-        // Clear the timeout since we got a response
-        clearTimeout(timeoutId);
         
         console.log('✈️ Flight search response:', response.data);
         
@@ -539,9 +550,6 @@ async function performSearch() {
             }
         }
         displaySearchError();
-    } finally {
-        console.log('🔄 Finally block - hiding loading overlay');
-        showLoadingOverlay(false);
     }
 }
 
@@ -703,18 +711,20 @@ function updateSummaryCard(type, flight) {
     const slice = flight.slices[0];
     const segment = slice.segments[0];
     
-    const departureTime = moment(segment.departing_at).format('HH:mm');
-    const arrivalTime = moment(segment.arriving_at).format('HH:mm');
-    const duration = moment.duration(slice.duration).humanize();
-    const price = `${flight.total_currency} ${parseFloat(flight.total_amount).toLocaleString()}`;
-    const airline = segment.marketing_carrier?.name || segment.operating_carrier?.name || 'Unknown Airline';
-    const stops = slice.segments.length > 1 ? `${slice.segments.length - 1} stop${slice.segments.length > 2 ? 's' : ''}` : 'Direct';
-    
-    // Update the card elements
-    document.getElementById(`${type}Price`).textContent = price;
-    document.getElementById(`${type}Time`).textContent = `${departureTime} - ${arrivalTime}`;
-    document.getElementById(`${type}Route`).textContent = airline;
-    document.getElementById(`${type}Duration`).textContent = `${duration} • ${stops}`;
+    // Update card based on type - show only the most relevant info
+    if (type === 'cheapest') {
+        // Show only price
+        const price = `${flight.total_currency} ${parseFloat(flight.total_amount).toLocaleString()}`;
+        document.getElementById('cheapestPrice').textContent = price;
+    } else if (type === 'fastest') {
+        // Show only duration
+        const duration = moment.duration(slice.duration).humanize();
+        document.getElementById('fastestDuration').textContent = duration;
+    } else if (type === 'earliest') {
+        // Show only departure time
+        const departureTime = moment(segment.departing_at).format('HH:mm');
+        document.getElementById('earliestTime').textContent = departureTime;
+    }
     
     // Add click handler to scroll to the flight
     const card = document.getElementById(`${type}Flight`);
@@ -835,7 +845,7 @@ function openBookingModal() {
     modal.classList.remove('hidden');
     
     // Populate flight details
-    const flightDetails = document.getElementById('selectedFlightDetails');
+    const flightDetails = document.getElementById('selectedFlightInfo');
     const slice = selectedOffer.slices[0];
     const segment = slice.segments[0];
     
@@ -868,7 +878,7 @@ function closeBookingModal() {
 }
 
 function generatePassengerForms() {
-    const container = document.getElementById('passengerFormsContainer');
+    const container = document.getElementById('passengerForms');
     const adults = parseInt(document.getElementById('adultsCount').textContent) || 1;
     const children = parseInt(document.getElementById('childrenCount').textContent) || 0;
     const infants = parseInt(document.getElementById('infantsCount').textContent) || 0;
@@ -895,6 +905,12 @@ function generatePassengerForms() {
     }
     
     container.innerHTML = formsHTML;
+    
+    // Initialize country code displays for all adult passengers
+    const totalForms = adults + children + infants;
+    for (let i = 0; i < adults; i++) {
+        initializeCountryCodeDisplay(i);
+    }
 }
 
 function generatePassengerForm(type, index, number) {
@@ -942,7 +958,20 @@ function generatePassengerForm(type, index, number) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                    <input type="tel" id="phone_${index}" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                    <div class="flex gap-2">
+                        <div class="relative w-40">
+                            <input type="text" id="phoneCodeSearch_${index}" placeholder="Search country..." 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                   onfocus="showCountryDropdown(${index})"
+                                   oninput="filterCountryCodes(${index})">
+                            <input type="hidden" id="phoneCode_${index}" value="+880">
+                            <div id="countryDropdown_${index}" class="hidden absolute z-50 w-72 bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+                                <!-- Countries will be populated here -->
+                            </div>
+                        </div>
+                        <input type="tel" id="phone_${index}" class="flex-1 border border-gray-300 rounded-lg px-3 py-2" placeholder="1234567890" required>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Enter phone without country code</p>
                 </div>
                 ` : ''}
             </div>
@@ -976,8 +1005,16 @@ async function processBooking() {
             return;
         }
         
+        // Get the passenger ID from the offer's passengers array
+        // This ID was generated by Duffel when the offer was created
+        const passengerId = selectedOffer.passengers[i]?.id;
+        if (!passengerId) {
+            alert(`Unable to find passenger ID for passenger ${i + 1}`);
+            return;
+        }
+        
         const passenger = {
-            id: `passenger_${Date.now()}_${i}`,
+            id: passengerId,  // REQUIRED: ID from the offer's passengers array
             type: type,
             title: title,
             given_name: firstName,
@@ -989,6 +1026,7 @@ async function processBooking() {
         // Add email and phone for adults
         if (type === 'adult') {
             const email = document.getElementById(`email_${i}`).value;
+            const phoneCode = document.getElementById(`phoneCode_${i}`).value;
             const phone = document.getElementById(`phone_${i}`).value;
             
             if (!email || !phone) {
@@ -996,8 +1034,11 @@ async function processBooking() {
                 return;
             }
             
+            // Format phone number in E.164 format (country code + number)
+            const formattedPhone = `${phoneCode}${phone.replace(/^0+/, '')}`; // Remove leading zeros
+            
             passenger.email = email;
-            passenger.phone_number = phone;
+            passenger.phone_number = formattedPhone;
         }
         
         passengers.push(passenger);
@@ -1006,27 +1047,29 @@ async function processBooking() {
     const bookingData = {
         offer_id: selectedOffer.id,
         passenger_count: totalPassengers,
-        passengers: passengers
+        passengers: passengers,
+        total_amount: selectedOffer.total_amount,
+        total_currency: selectedOffer.total_currency
     };
     
     try {
-        showLoadingOverlay(true);
-        
         console.log('📤 Sending booking request:', bookingData);
         
         const response = await axios.post('/api/book-flight', bookingData);
         
-        if (response.data.success) {
+        console.log('✅ Booking response:', response.data);
+        
+        // Duffel API returns { data: { ...orderData } }
+        if (response.data && response.data.data) {
             showBookingConfirmation(response.data.data);
             closeBookingModal();
         } else {
             alert('Booking failed: ' + (response.data.error || 'Unknown error'));
         }
     } catch (error) {
-        console.error('Booking error:', error);
-        alert('Booking failed. Please try again.');
-    } finally {
-        showLoadingOverlay(false);
+        console.error('❌ Booking error:', error);
+        const errorMsg = error.response?.data?.details?.errors?.[0]?.message || error.response?.data?.error || error.message || 'Unknown error';
+        alert('Booking failed: ' + errorMsg);
     }
 }
 
@@ -1161,34 +1204,164 @@ function showBookingConfirmation(orderData) {
     const confirmation = document.getElementById('bookingConfirmation');
     const details = document.getElementById('confirmationDetails');
     
+    // Get flight details from the order
+    const firstSlice = orderData.slices[0];
+    const firstSegment = firstSlice.segments[0];
+    const passenger = orderData.passengers[0];
+    
+    // Format departure and arrival times
+    const departureTime = moment(firstSegment.departing_at).format('MMM DD, YYYY [at] HH:mm');
+    const arrivalTime = moment(firstSegment.arriving_at).format('MMM DD, YYYY [at] HH:mm');
+    
+    // Calculate total stops
+    const totalStops = firstSlice.segments.length - 1;
+    
     details.innerHTML = `
-        <div class="text-left">
-            <h3 class="font-semibold text-gray-800 mb-4">Booking Details</h3>
-            <div class="space-y-2">
-                <div><strong>Booking Reference:</strong> ${orderData.booking_reference}</div>
-                <div><strong>Total Amount:</strong> ${orderData.total_currency} ${parseFloat(orderData.total_amount).toLocaleString()}</div>
-                <div><strong>Status:</strong> <span class="text-green-600 font-medium">${orderData.live_mode ? 'Confirmed' : 'Test Booking'}</span></div>
+        <div class="text-left space-y-6">
+            <!-- Success Header -->
+            <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h3>
+                <p class="text-gray-600">Your flight has been successfully booked</p>
+            </div>
+
+            <!-- Booking Reference -->
+            <div class="bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 rounded-lg p-4 text-center">
+                <p class="text-sm text-gray-600 mb-1">Booking Reference</p>
+                <p class="text-3xl font-bold text-orange-600 tracking-wider">${orderData.booking_reference}</p>
+                <p class="text-xs text-gray-500 mt-2">Order ID: ${orderData.id}</p>
+            </div>
+
+            <!-- Flight Details -->
+            <div class="border-2 border-gray-200 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    Flight Information
+                </h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Airline:</span>
+                        <span class="font-semibold">${firstSegment.operating_carrier.name} (${firstSegment.operating_carrier.iata_code})</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Flight Number:</span>
+                        <span class="font-semibold">${firstSegment.operating_carrier.iata_code}-${firstSegment.operating_carrier_flight_number}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Route:</span>
+                        <span class="font-semibold">${firstSlice.origin.iata_code} → ${firstSlice.destination.iata_code}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Departure:</span>
+                        <span class="font-semibold">${departureTime}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Arrival:</span>
+                        <span class="font-semibold">${arrivalTime}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Stops:</span>
+                        <span class="font-semibold">${totalStops === 0 ? 'Non-stop' : `${totalStops} stop${totalStops > 1 ? 's' : ''}`}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Cabin Class:</span>
+                        <span class="font-semibold capitalize">${firstSegment.passengers[0].cabin_class}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passenger Details -->
+            <div class="border-2 border-gray-200 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Passenger Information
+                </h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Name:</span>
+                        <span class="font-semibold">${passenger.title.toUpperCase()}. ${passenger.given_name} ${passenger.family_name}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Email:</span>
+                        <span class="font-semibold">${passenger.email}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Phone:</span>
+                        <span class="font-semibold">${passenger.phone_number}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Date of Birth:</span>
+                        <span class="font-semibold">${moment(passenger.born_on).format('MMM DD, YYYY')}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="border-2 border-gray-200 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Payment Information
+                </h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Base Fare:</span>
+                        <span class="font-semibold">${orderData.base_currency} ${parseFloat(orderData.base_amount).toLocaleString()}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Taxes & Fees:</span>
+                        <span class="font-semibold">${orderData.tax_currency} ${parseFloat(orderData.tax_amount).toLocaleString()}</span>
+                    </div>
+                    <div class="flex items-center justify-between border-t-2 border-gray-300 pt-2 mt-2">
+                        <span class="text-gray-900 font-bold">Total Amount:</span>
+                        <span class="text-xl font-bold text-orange-600">${orderData.total_currency} ${parseFloat(orderData.total_amount).toLocaleString()}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Payment Status:</span>
+                        <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                            ${orderData.payment_status.awaiting_payment ? 'Pending' : 'PAID'}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Booking Type:</span>
+                        <span class="px-3 py-1 ${orderData.live_mode ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'} rounded-full text-xs font-semibold">
+                            ${orderData.live_mode ? 'LIVE BOOKING' : 'TEST MODE'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Important Notice -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <div class="flex">
+                    <svg class="w-5 h-5 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="text-sm">
+                        <p class="font-semibold text-blue-800">Important Information</p>
+                        <p class="text-blue-700 mt-1">A confirmation email has been sent to <strong>${passenger.email}</strong>. Please save your booking reference for future use.</p>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
     confirmation.classList.remove('hidden');
-    
-    setTimeout(() => {
-        confirmation.classList.add('hidden');
-    }, 5000);
 }
 
-function showLoadingOverlay(show) {
-    const overlay = document.getElementById('loadingOverlay');
-    console.log(`${show ? '🔄 Showing' : '✅ Hiding'} loading overlay`);
-    
-    if (overlay) {
-        overlay.style.display = show ? 'flex' : 'none';
-        console.log(`Loading overlay display: ${overlay.style.display}`);
-    } else {
-        console.error('❌ Loading overlay element not found!');
-    }
+// Close booking confirmation modal
+function closeBookingConfirmation() {
+    const confirmation = document.getElementById('bookingConfirmation');
+    confirmation.classList.add('hidden');
 }
 
 // Swap origin and destination
@@ -1217,9 +1390,6 @@ function swapOriginDestination() {
 function testSearch() {
     console.log('🧪 Manual test search triggered');
     
-    // Force hide loading overlay first
-    showLoadingOverlay(false);
-    
     // Set test data
     const origin = document.getElementById('origin');
     const destination = document.getElementById('destination');
@@ -1243,4 +1413,142 @@ function testSearch() {
 
 // Make testSearch available globally for debugging
 window.testSearch = testSearch;
-window.showLoadingOverlay = showLoadingOverlay;
+
+// Country codes data
+const countryCodes = [
+    { name: 'Afghanistan', code: '+93', abbr: 'AF' },
+    { name: 'Albania', code: '+355', abbr: 'AL' },
+    { name: 'Algeria', code: '+213', abbr: 'DZ' },
+    { name: 'Argentina', code: '+54', abbr: 'AR' },
+    { name: 'Australia', code: '+61', abbr: 'AU' },
+    { name: 'Austria', code: '+43', abbr: 'AT' },
+    { name: 'Bahrain', code: '+973', abbr: 'BH' },
+    { name: 'Bangladesh', code: '+880', abbr: 'BD' },
+    { name: 'Belgium', code: '+32', abbr: 'BE' },
+    { name: 'Brazil', code: '+55', abbr: 'BR' },
+    { name: 'Canada', code: '+1', abbr: 'CA' },
+    { name: 'China', code: '+86', abbr: 'CN' },
+    { name: 'Denmark', code: '+45', abbr: 'DK' },
+    { name: 'Egypt', code: '+20', abbr: 'EG' },
+    { name: 'France', code: '+33', abbr: 'FR' },
+    { name: 'Germany', code: '+49', abbr: 'DE' },
+    { name: 'Hong Kong', code: '+852', abbr: 'HK' },
+    { name: 'India', code: '+91', abbr: 'IN' },
+    { name: 'Indonesia', code: '+62', abbr: 'ID' },
+    { name: 'Iran', code: '+98', abbr: 'IR' },
+    { name: 'Iraq', code: '+964', abbr: 'IQ' },
+    { name: 'Ireland', code: '+353', abbr: 'IE' },
+    { name: 'Italy', code: '+39', abbr: 'IT' },
+    { name: 'Japan', code: '+81', abbr: 'JP' },
+    { name: 'Jordan', code: '+962', abbr: 'JO' },
+    { name: 'Kuwait', code: '+965', abbr: 'KW' },
+    { name: 'Malaysia', code: '+60', abbr: 'MY' },
+    { name: 'Mexico', code: '+52', abbr: 'MX' },
+    { name: 'Nepal', code: '+977', abbr: 'NP' },
+    { name: 'Netherlands', code: '+31', abbr: 'NL' },
+    { name: 'New Zealand', code: '+64', abbr: 'NZ' },
+    { name: 'Norway', code: '+47', abbr: 'NO' },
+    { name: 'Oman', code: '+968', abbr: 'OM' },
+    { name: 'Pakistan', code: '+92', abbr: 'PK' },
+    { name: 'Philippines', code: '+63', abbr: 'PH' },
+    { name: 'Poland', code: '+48', abbr: 'PL' },
+    { name: 'Qatar', code: '+974', abbr: 'QA' },
+    { name: 'Russia', code: '+7', abbr: 'RU' },
+    { name: 'Saudi Arabia', code: '+966', abbr: 'SA' },
+    { name: 'Singapore', code: '+65', abbr: 'SG' },
+    { name: 'South Africa', code: '+27', abbr: 'ZA' },
+    { name: 'South Korea', code: '+82', abbr: 'KR' },
+    { name: 'Spain', code: '+34', abbr: 'ES' },
+    { name: 'Sri Lanka', code: '+94', abbr: 'LK' },
+    { name: 'Sweden', code: '+46', abbr: 'SE' },
+    { name: 'Switzerland', code: '+41', abbr: 'CH' },
+    { name: 'Thailand', code: '+66', abbr: 'TH' },
+    { name: 'Turkey', code: '+90', abbr: 'TR' },
+    { name: 'United Arab Emirates', code: '+971', abbr: 'AE' },
+    { name: 'United Kingdom', code: '+44', abbr: 'GB' },
+    { name: 'United States', code: '+1', abbr: 'US' },
+    { name: 'Vietnam', code: '+84', abbr: 'VN' }
+];
+
+// Show country dropdown
+function showCountryDropdown(index) {
+    const dropdown = document.getElementById(`countryDropdown_${index}`);
+    const searchInput = document.getElementById(`phoneCodeSearch_${index}`);
+    
+    // Populate dropdown
+    populateCountryDropdown(index, countryCodes);
+    
+    dropdown.classList.remove('hidden');
+    
+    // Close dropdown when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeDropdown(e) {
+            if (!dropdown.contains(e.target) && e.target !== searchInput) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }, 100);
+}
+
+// Filter country codes based on search
+function filterCountryCodes(index) {
+    const searchInput = document.getElementById(`phoneCodeSearch_${index}`);
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    const filtered = countryCodes.filter(country => 
+        country.name.toLowerCase().includes(searchTerm) ||
+        country.code.includes(searchTerm) ||
+        country.abbr.toLowerCase().includes(searchTerm)
+    );
+    
+    populateCountryDropdown(index, filtered);
+}
+
+// Populate country dropdown
+function populateCountryDropdown(index, countries) {
+    const dropdown = document.getElementById(`countryDropdown_${index}`);
+    
+    if (countries.length === 0) {
+        dropdown.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm">No countries found</div>';
+        return;
+    }
+    
+    dropdown.innerHTML = countries.map(country => `
+        <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between text-sm"
+             onclick="selectCountryCode(${index}, '${country.code}', '${country.name}', '${country.abbr}')">
+            <span class="font-medium">${country.name}</span>
+            <span class="text-gray-600">${country.code}</span>
+        </div>
+    `).join('');
+}
+
+// Select country code
+function selectCountryCode(index, code, name, abbr) {
+    const searchInput = document.getElementById(`phoneCodeSearch_${index}`);
+    const hiddenInput = document.getElementById(`phoneCode_${index}`);
+    const dropdown = document.getElementById(`countryDropdown_${index}`);
+    
+    hiddenInput.value = code;
+    searchInput.value = `${code} (${abbr})`;
+    dropdown.classList.add('hidden');
+}
+
+// Initialize country code display on form generation
+function initializeCountryCodeDisplay(index) {
+    const searchInput = document.getElementById(`phoneCodeSearch_${index}`);
+    const hiddenInput = document.getElementById(`phoneCode_${index}`);
+    
+    if (searchInput && hiddenInput) {
+        // Set default to Bangladesh
+        const defaultCountry = countryCodes.find(c => c.code === '+880');
+        if (defaultCountry) {
+            searchInput.value = `${defaultCountry.code} (${defaultCountry.abbr})`;
+        }
+    }
+}
+
+// Make functions globally available
+window.showCountryDropdown = showCountryDropdown;
+window.filterCountryCodes = filterCountryCodes;
+window.selectCountryCode = selectCountryCode;

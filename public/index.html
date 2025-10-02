@@ -476,33 +476,7 @@
     <script src="app.js"></script>
     
     <!-- Hot Reload Script (Development Only) -->
-    <script>
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            const ws = new WebSocket(`ws://${window.location.host}`);
-            
-            ws.onopen = function() {
-                console.log('🔥 Hot reload connected');
-            };
-            
-            ws.onmessage = function(event) {
-                if (event.data === 'reload') {
-                    console.log('🔄 Reloading page...');
-                    window.location.reload();
-                }
-            };
-            
-            ws.onclose = function() {
-                console.log('🔌 Hot reload disconnected');
-                // Try to reconnect after 1 second
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            };
-            
-            ws.onerror = function(error) {
-                console.log('❌ Hot reload error:', error);
-            };
-        }
-    </script>
+        <script src="script.js"></script>
+</body>
 </body>
 </html>

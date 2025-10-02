@@ -4,9 +4,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
-const http = require('http');
-const WebSocket = require('ws');
-const chokidar = require('chokidar');
 require('dotenv').config();
 
 const app = express();
@@ -164,14 +161,19 @@ app.post('/api/search-flights', async (req, res) => {
 // Create order (booking)
 app.post('/api/book-flight', async (req, res) => {
   try {
-    const { offer_id, passengers } = req.body;
+    const { offer_id, passengers, total_amount, total_currency } = req.body;
     
     console.log('🎫 Received booking request:', {
       offer_id,
       passenger_count: passengers.length,
-      passengers: passengers
+      total_amount,
+      total_currency
     });
     
+    // Log passengers for debugging
+    console.log('👥 Passengers data:', JSON.stringify(passengers, null, 2));
+    
+    // Build booking data exactly as Duffel API expects
     const bookingData = {
       data: {
         selected_offers: [offer_id],
@@ -179,8 +181,8 @@ app.post('/api/book-flight', async (req, res) => {
         payments: [
           {
             type: 'balance',
-            currency: 'USD',
-            amount: '0.00'
+            currency: total_currency,
+            amount: total_amount
           }
         ],
         type: 'instant'
@@ -195,6 +197,12 @@ app.post('/api/book-flight', async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error('❌ Booking error:', error.response?.data || error.message);
+    
+    // Log detailed error info
+    if (error.response?.data?.errors) {
+      console.error('❌ Validation errors:', JSON.stringify(error.response.data.errors, null, 2));
+    }
+    
     res.status(500).json({ 
       error: 'Failed to book flight',
       details: error.response?.data || error.message 
@@ -226,41 +234,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Create HTTP server and WebSocket server for hot reload
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-// Hot reload functionality
-if (process.env.NODE_ENV !== 'production') {
-  // Watch for changes in public folder
-  const watcher = chokidar.watch('./public', {
-    ignored: /node_modules/,
-    persistent: true
-  });
-
-  watcher.on('change', (filePath) => {
-    console.log(`🔄 File changed: ${filePath} - Reloading clients...`);
-    // Notify all connected clients to reload
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send('reload');
-      }
-    });
-  });
-
-  wss.on('connection', (ws) => {
-    console.log('🔌 Hot reload client connected');
-    ws.on('close', () => {
-      console.log('🔌 Hot reload client disconnected');
-    });
-  });
-}
-
-server.listen(PORT, () => {
+// Start server
+app.listen(PORT, () => {
   console.log(`🚀 Soft Flight Booking running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔑 API Token configured: ${API_TOKEN ? 'Yes' : 'No'}`);
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`🔥 Hot reload enabled - watching public folder`);
-  }
 });
