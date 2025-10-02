@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Soft Flight Booking - Easy and convenient flight booking platform with advanced search and filtering options">
+    <title>Soft Flight Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .flight-card {
+            transition: all 0.3s ease;
+        }
+        .flight-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .place-suggestion {
+            transition: background-color 0.15s ease;
+        }
+        .place-suggestion:hover {
+            background-color: #f8fafc;
+        }
+        .place-type-badge {
+            font-size: 0.75rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        .city-badge {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .airport-badge {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        .passenger-counter {
+            transition: all 0.2s ease;
+        }
+        .passenger-counter button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .passenger-counter button:disabled:hover {
+            background-color: transparent;
+            color: #9ca3af;
+        }
+        .passenger-counter button:hover:not(:disabled) {
+            background-color: #f8fafc;
+            color: #374151;
+        }
+        
+        /* Single clean range slider styles */
+        .range-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            outline: none;
+            pointer-events: none;
+        }
+        
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ea580c;
+            cursor: pointer;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            pointer-events: all;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .range-slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ea580c;
+            cursor: pointer;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            pointer-events: all;
+            position: relative;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col" style="background: linear-gradient(135deg, #fef7ed 0%, #fed7aa 30%, #f2623c 100%);">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b flex-shrink-0">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-plane text-blue-600 mr-2"></i>
+                    Soft Flight Booking
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">Test Mode</span>
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 flex-1 py-8">
+        <!-- Search Form -->
+        <div class="bg-white/40 backdrop-blur-md rounded-xl shadow-2xl border border-white/30 p-7 mb-6 w-full mx-auto">
+            <!-- Trip Type Selection -->
+            <div class="flex flex-wrap gap-6 mb-4">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="tripType" value="oneWay" checked class="w-4 h-4 text-orange-600">
+                    <span class="text-gray-700">One Way</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="radio" name="tripType" value="roundTrip" class="w-4 h-4 text-orange-600">
+                    <span class="text-gray-700">Round Trip</span>
+                </label>
+            </div>
+            
+            <form id="searchForm">
+                <!-- Single Row Form -->
+                <div class="grid grid-cols-1 lg:grid-cols-6 gap-3 items-end mb-4 relative">
+                    <!-- Origin -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+                        <div class="relative">
+                            <input type="text" id="origin" placeholder="City or airport..." 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent pl-10 text-sm bg-white/90 backdrop-blur-sm"
+                                   autocomplete="off">
+                            <i class="fas fa-plane-departure absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+                        </div>
+                        <div id="originSuggestions" class="absolute z-20 left-0 right-0 bg-white border border-gray-300 rounded-lg mt-1 hidden max-h-64 overflow-y-auto shadow-lg min-w-[300px]"></div>
+                    </div>
+
+                    <!-- Destination -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+                        <div class="relative">
+                            <input type="text" id="destination" placeholder="City or airport..." 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent pl-10 text-sm bg-white/90 backdrop-blur-sm"
+                                   autocomplete="off">
+                            <i class="fas fa-plane-arrival absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+                        </div>
+                        <div id="destinationSuggestions" class="absolute z-20 left-0 right-0 bg-white border border-gray-300 rounded-lg mt-1 hidden max-h-64 overflow-y-auto shadow-lg min-w-[300px]"></div>
+                    </div>
+
+                    <!-- Swap Button - Absolute positioned between From and To -->
+                    <button type="button" onclick="swapOriginDestination()"
+                            class="absolute top-[38px] left-[calc(50%-18px)] lg:left-[calc(16.666%-18px)] w-6 h-6 bg-white border-2 border-orange-600 text-orange-600 rounded-full hover:bg-orange-600 hover:text-white transition duration-200 flex items-center justify-center text-xs z-20 shadow-lg">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+
+                    <!-- Departure Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Departure</label>
+                        <input type="date" id="departureDate" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm bg-white/90 backdrop-blur-sm">
+                    </div>
+
+                    <!-- Return Date -->
+                    <div id="returnDateContainer">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Return</label>
+                        <input type="date" id="returnDate" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm bg-white/90 backdrop-blur-sm">
+                    </div>
+
+                    <!-- Travelers Dropdown -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Travelers</label>
+                        <div class="relative">
+                            <button type="button" id="travellerDropdownBtn" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-left text-sm bg-white/90 backdrop-blur-sm hover:bg-gray-50 flex items-center justify-between h-[46px]">
+                                <span id="travellerSummaryInline" class="font-medium">1 Adult</span>
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </button>
+                            
+                            <!-- Dropdown Content -->
+                            <div id="travellerDropdown" class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg mt-1 shadow-lg z-30 hidden">
+                                <div class="p-4 space-y-4">
+                                    <!-- Passengers -->
+                                    <div class="space-y-3">
+                                        <!-- Adults -->
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <div class="font-medium text-sm">Adult</div>
+                                                <div class="text-xs text-gray-500">12+ years</div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <button type="button" onclick="decrementPassenger('adults')" 
+                                                        class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 text-xs">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <span id="adultsCountDropdown" class="w-6 text-center text-sm font-medium">1</span>
+                                                <button type="button" onclick="incrementPassenger('adults')" 
+                                                        class="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center hover:bg-orange-700 text-xs">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Children -->
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <div class="font-medium text-sm">Child</div>
+                                                <div class="text-xs text-gray-500">2-11 years</div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <button type="button" onclick="decrementPassenger('children')" 
+                                                        class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 text-xs">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <span id="childrenCountDropdown" class="w-6 text-center text-sm font-medium">0</span>
+                                                <button type="button" onclick="incrementPassenger('children')" 
+                                                        class="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center hover:bg-orange-700 text-xs">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Infants -->
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <div class="font-medium text-sm">Infant</div>
+                                                <div class="text-xs text-gray-500">Under 2</div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <button type="button" onclick="decrementPassenger('infants')" 
+                                                        class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 text-xs">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <span id="infantsCountDropdown" class="w-6 text-center text-sm font-medium">0</span>
+                                                <button type="button" onclick="incrementPassenger('infants')" 
+                                                        class="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center hover:bg-orange-700 text-xs">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="border-gray-200">
+
+                                    <!-- Cabin Class -->
+                                    <div>
+                                        <div class="font-medium text-sm mb-2">Class</div>
+                                        <div class="space-y-1">
+                                            <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                                <input type="radio" name="cabinClass" value="economy" checked class="w-3 h-3 text-red-600">
+                                                <span>Economy</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                                <input type="radio" name="cabinClass" value="premium_economy" class="w-3 h-3 text-red-600">
+                                                <span>Premium Economy</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                                <input type="radio" name="cabinClass" value="business" class="w-3 h-3 text-red-600">
+                                                <span>Business</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer text-sm">
+                                                <input type="radio" name="cabinClass" value="first" class="w-3 h-3 text-red-600">
+                                                <span>First Class</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Button -->
+                    <div>
+                        <button type="submit" id="searchBtn" 
+                                class="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition duration-200 flex items-center justify-center space-x-2 text-sm font-medium shadow-lg">
+                            <i class="fas fa-search"></i>
+                            <span>Search Flights</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden text-center py-8 w-full mx-auto">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600">Searching for flights...</p>
+        </div>
+
+        <!-- Flight Results -->
+        <div id="flightResults" class="hidden w-full mx-auto">
+            <!-- Results Header with Count -->
+            <div class="flex items-center justify-between mb-6">
+                <h2 id="resultsHeader" class="text-xl font-semibold text-gray-800">Available Flights</h2>
+            </div>
+            
+            <!-- Main Results Layout -->
+            <div class="flex gap-6">
+                <!-- Left Sidebar - Filters -->
+                <div class="w-72 flex-shrink-0">
+                    <div class="bg-white rounded-lg shadow-md p-6 space-y-6">
+                        <!-- Price Range Filter -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Price Range</h3>
+                                <i class="fas fa-chevron-up text-gray-400"></i>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="px-2">
+                                    <div class="relative h-2 bg-gray-200 rounded-lg mb-4">
+                                        <div id="priceRangeTrack" class="absolute h-2 bg-orange-500 rounded-lg"></div>
+                                        <input type="range" id="priceRangeMin" min="0" max="50000" value="0" 
+                                               class="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer range-slider">
+                                        <input type="range" id="priceRangeMax" min="0" max="50000" value="50000" 
+                                               class="absolute w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer range-slider">
+                                    </div>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-600 px-2">
+                                    <span id="minPriceDisplay">৳ 0</span>
+                                    <span id="maxPriceDisplay">৳ 50,000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stops Filter -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Stops</h3>
+                                <i class="fas fa-chevron-up text-gray-400"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="nonStop" class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                    <span class="text-gray-700">Non-stop</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="oneStop" class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                    <span class="text-gray-700">1 Stop</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="multiStop" class="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                                    <span class="text-gray-700">2+ Stops</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Airlines Filter -->
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Airlines</h3>
+                                <button onclick="resetAirlineFilters()" class="text-orange-600 text-sm hover:text-orange-700">Reset</button>
+                            </div>
+                            <div id="airlinesFilter" class="space-y-3 max-h-60 overflow-y-auto">
+                                <!-- Airlines will be populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Apply Filters Button -->
+                        <button onclick="applyFilters()" class="w-full bg-orange-600 text-white py-3 px-4 rounded-lg hover:bg-orange-700 transition duration-200 font-medium">
+                            Apply Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Content Area -->
+                <div class="flex-1">
+                    <!-- Flight Summary -->
+                    <div class="mb-6">
+                        <div class="flex flex-wrap gap-4">
+                            <!-- Cheapest -->
+                            <div class="flex items-center space-x-3 px-6 py-4 border-2 border-orange-600 text-orange-600 rounded-lg bg-orange-50 min-w-[180px]">
+                                <i class="fas fa-dollar-sign text-lg"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold text-base">Cheapest</div>
+                                    <div class="text-sm" id="cheapestPrice">৳ 8,786</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Fastest -->
+                            <div class="flex items-center space-x-3 px-6 py-4 border border-gray-300 text-gray-700 rounded-lg bg-gray-50 min-w-[180px]">
+                                <i class="fas fa-clock text-lg"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold text-base">Fastest</div>
+                                    <div class="text-sm" id="fastestDuration">1h 50m</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Earliest -->
+                            <div class="flex items-center space-x-3 px-6 py-4 border border-gray-300 text-gray-700 rounded-lg bg-gray-50 min-w-[180px]">
+                                <i class="fas fa-sun text-lg"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold text-base">Earliest</div>
+                                    <div class="text-sm" id="earliestTime">07:00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flight List -->
+                    <div id="flightsList" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Booking Form Modal -->
+        <div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold">Complete Your Booking</h3>
+                            <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div id="selectedFlightInfo" class="bg-gray-50 p-4 rounded-lg mb-6"></div>
+
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <div class="flex items-start space-x-2">
+                                <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                                <div class="text-sm text-blue-800">
+                                    <p class="font-medium mb-1">Passenger Information</p>
+                                    <p>Fields marked with <span class="text-red-500">*</span> are required by the airline. Other fields are optional but may be helpful for your booking.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="bookingForm">
+                            <div id="passengerForms" class="space-y-6"></div>
+                            
+                            <div class="flex justify-end space-x-4 mt-6">
+                                <button type="button" id="cancelBooking" 
+                                        class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Cancel
+                                </button>
+                                <button type="submit" 
+                                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                    Complete Booking
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Confirmation -->
+        <div id="bookingConfirmation" class="hidden bg-white rounded-lg shadow-md p-6">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-green-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Booking Confirmed!</h2>
+                <div id="confirmationDetails" class="bg-gray-50 p-4 rounded-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    
+    <!-- Hot Reload Script (Development Only) -->
+        <script src="script.js"></script>
+</body>
+</body>
+</html>

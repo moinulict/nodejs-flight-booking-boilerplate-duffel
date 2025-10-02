@@ -114,13 +114,24 @@
             transform: scale(1.1);
         }
 
+        .place-type-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
         .place-type-badge.airport-badge {
             background-color: #dbeafe;
             color: #1e40af;
         }
 
+        .place-suggestion {
+            transition: background-color 0.15s ease;
+        }
+
         .place-suggestion:hover {
-            background-color: #f3f4f6;
+            background-color: #f8fafc;
         }
 
         /* Custom gradient background */
@@ -133,30 +144,89 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
         }
+
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 50%;
+            background-color: #F2623C;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <i class="fas fa-plane text-orange-600 text-2xl"></i>
-                        <span class="text-xl font-bold text-gray-800">Soft Flight Booking</span>
+    <!-- Header -->
+    <header class="bg-white shadow-sm fixed w-full top-0 z-50">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <a href="/" class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-plane text-white text-xl"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+                            Soft Flight
+                        </h1>
                     </a>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <button class="text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-user"></i>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="/" class="nav-link text-gray-700 hover:text-orange-600 font-medium">Flights</a>
+                    <a href="/#about" class="nav-link text-gray-700 hover:text-orange-600 font-medium">About Us</a>
+                    <a href="/#contact" class="nav-link text-gray-700 hover:text-orange-600 font-medium">Contact Us</a>
+                </nav>
+                
+                <!-- Auth Buttons -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <button class="text-gray-700 hover:text-orange-600 font-medium px-4 py-2 transition">
+                        Login
+                    </button>
+                    <button class="bg-orange-600 text-white px-6 py-2.5 rounded-lg hover:bg-orange-700 transition font-medium shadow-lg">
+                        Sign Up
                     </button>
                 </div>
+                
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden text-gray-700 hover:text-orange-600" id="mobileMenuBtn">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
             </div>
         </div>
-    </nav>
+        
+        <!-- Mobile Menu -->
+        <div class="md:hidden hidden bg-white border-t" id="mobileMenu">
+            <div class="container mx-auto px-4 py-4 space-y-3">
+                <a href="/" class="block py-2 text-gray-700 hover:text-orange-600 font-medium">Flights</a>
+                <a href="/#about" class="block py-2 text-gray-700 hover:text-orange-600 font-medium">About Us</a>
+                <a href="/#contact" class="block py-2 text-gray-700 hover:text-orange-600 font-medium">Contact Us</a>
+                <hr class="my-3">
+                <button class="block w-full text-center py-2 text-gray-700 hover:text-orange-600 font-medium">
+                    Login
+                </button>
+                <button class="block w-full bg-orange-600 text-white py-2.5 rounded-lg hover:bg-orange-700 transition font-medium">
+                    Sign Up
+                </button>
+            </div>
+        </div>
+    </header>
 
     <!-- Search Header -->
-    <div class="search-gradient py-6">
+    <div class="search-gradient py-6 mt-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="search-form-bg rounded-xl p-6 shadow-xl">
                 <!-- Trip Type Selection - Above Form -->
@@ -521,6 +591,113 @@
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 pt-16 pb-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                <!-- Company Info -->
+                <div>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-plane text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white">Soft Flight</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">Your trusted partner for hassle-free flight bookings worldwide. Experience seamless travel planning with us.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Quick Links</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/" class="hover:text-orange-500 transition">Home</a></li>
+                        <li><a href="/" class="hover:text-orange-500 transition">Flights</a></li>
+                        <li><a href="/#about" class="hover:text-orange-500 transition">About Us</a></li>
+                        <li><a href="/#contact" class="hover:text-orange-500 transition">Contact</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Support -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Support</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="hover:text-orange-500 transition">Help Center</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">FAQs</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">How to Book</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Cancellation Policy</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Payment Methods</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Customer Support</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact Info -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Contact Us</h4>
+                    <ul class="space-y-4">
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-map-marker-alt text-orange-500 mt-1"></i>
+                            <span>123 Flight Street, Aviation City, AC 12345</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-phone text-orange-500 mt-1"></i>
+                            <span>+1 (555) 123-4567</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-envelope text-orange-500 mt-1"></i>
+                            <span>support@softflight.com</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-clock text-orange-500 mt-1"></i>
+                            <span>24/7 Customer Service</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                    <p class="text-gray-400 text-sm">
+                        © 2025 Soft Flight. All rights reserved.
+                    </p>
+                    <div class="flex items-center space-x-6 text-sm">
+                        <a href="#" class="hover:text-orange-500 transition">Privacy</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="#" class="hover:text-orange-500 transition">Terms</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="#" class="hover:text-orange-500 transition">Sitemap</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
     <script src="flights.js"></script>
 </body>
 </html>

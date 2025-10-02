@@ -405,43 +405,95 @@ function setupAirportAutocomplete(input, dropdownId) {
     });
 }
 
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
 async function searchAirports(query, dropdown, input) {
     try {
         console.log(`🔍 Searching airports for: "${query}"`);
-        const response = await axios.get(`/api/places?query=${query}`);
-        const places = response.data;
+        dropdown.innerHTML = '<div class="p-3 text-gray-500 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</div>';
+        dropdown.classList.remove('hidden');
         
-        console.log(`Found ${places.length} places:`, places);
+        const response = await axios.get(`/api/places?query=${encodeURIComponent(query)}`);
         
-        dropdown.innerHTML = '';
-        
-        if (places.length === 0) {
-            dropdown.innerHTML = '<div class="px-4 py-2 text-gray-500">No airports found</div>';
+        // Handle both formats: { data: [] } or direct array
+        let places = [];
+        if (response.data && response.data.data && Array.isArray(response.data.data)) {
+            places = response.data.data;
+        } else if (Array.isArray(response.data)) {
+            places = response.data;
         } else {
-            places.forEach(place => {
-                const item = document.createElement('div');
-                item.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100 border-b border-gray-200';
-                item.innerHTML = `
-                    <div class="font-medium">${place.name}</div>
-                    <div class="text-sm text-gray-500">${place.iata_code}</div>
-                `;
-                
-                item.addEventListener('click', function() {
-                    input.value = `${place.name} (${place.iata_code})`;
-                    input.setAttribute('data-iata', place.iata_code);
-                    input.setAttribute('data-city', place.iata_code);
-                    input.setAttribute('data-type', 'airport');
-                    dropdown.classList.add('hidden');
-                });
-                
-                dropdown.appendChild(item);
-            });
+            console.error('Invalid response format:', response.data);
+            dropdown.innerHTML = '<div class="p-3 text-red-500 text-center">Invalid response from server</div>';
+            return;
         }
         
+        console.log(`✅ Found ${places.length} places:`, places);
+        
+        if (places.length === 0) {
+            dropdown.innerHTML = '<div class="p-3 text-gray-500 text-center">No airports found</div>';
+            dropdown.classList.remove('hidden');
+            return;
+        }
+        
+        // Build the HTML with the same style as landing page
+        const html = places.map(place => {
+            const icon = 'fas fa-plane';
+            const badgeClass = 'airport-badge';
+            const displayText = place.name;
+            const subText = `${place.iata_code} • ${place.city}, ${place.country}`;
+            
+            return `
+                <div class="place-suggestion p-3 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center space-x-3 hover:bg-gray-50" 
+                     data-iata="${place.iata_code}" 
+                     data-name="${escapeHtml(place.name)}" 
+                     data-city="${place.city}"
+                     data-type="airport">
+                    <div class="flex-shrink-0">
+                        <i class="${icon} text-gray-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2">
+                            <div class="font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">${escapeHtml(displayText)}</div>
+                            <span class="place-type-badge ${badgeClass} flex-shrink-0 text-xs px-2 py-0.5 rounded">Airport</span>
+                        </div>
+                        <div class="text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis">${escapeHtml(subText)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        dropdown.innerHTML = html;
         dropdown.classList.remove('hidden');
+        
+        // Add click handlers to all suggestions
+        dropdown.querySelectorAll('.place-suggestion').forEach(item => {
+            item.addEventListener('click', function() {
+                const iata = this.getAttribute('data-iata');
+                const name = this.getAttribute('data-name');
+                const city = this.getAttribute('data-city');
+                
+                input.value = `${name} (${iata})`;
+                input.setAttribute('data-iata', iata);
+                input.setAttribute('data-city', city);
+                input.setAttribute('data-type', 'airport');
+                dropdown.classList.add('hidden');
+            });
+        });
+        
     } catch (error) {
-        console.error('Error searching airports:', error);
-        dropdown.innerHTML = '<div class="px-4 py-2 text-red-500">Error loading airports</div>';
+        console.error('❌ Error searching airports:', error);
+        console.error('Error details:', error.response?.data || error.message);
+        dropdown.innerHTML = '<div class="p-3 text-red-500 text-center">Error loading airports. Please try again.</div>';
         dropdown.classList.remove('hidden');
     }
 }
