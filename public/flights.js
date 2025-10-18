@@ -2,6 +2,7 @@
 let selectedOffer = null;
 let allFlights = [];
 let filteredFlights = [];
+let existingTravellers = []; // Store existing travellers from API
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
@@ -886,15 +887,31 @@ function displaySearchError() {
 
 // Flight selection and booking
 function selectFlight(offerId) {
+    // Check if user is authenticated before allowing booking
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        // Show login prompt and redirect
+        if (confirm('You need to log in to book flights. Would you like to go to the login page?')) {
+            // Store the current search parameters for after login
+            const currentUrl = window.location.href;
+            localStorage.setItem('redirect_after_login', currentUrl);
+            window.location.href = '/login';
+        }
+        return;
+    }
+    
     selectedOffer = allFlights.find(offer => offer.id === offerId);
     if (selectedOffer) {
         openBookingModal();
     }
 }
 
-function openBookingModal() {
+async function openBookingModal() {
     const modal = document.getElementById('bookingModal');
     modal.classList.remove('hidden');
+    
+    // Load existing travellers first
+    await loadExistingTravellers();
     
     // Populate flight details
     const flightDetails = document.getElementById('selectedFlightInfo');
@@ -963,6 +980,9 @@ function generatePassengerForms() {
     for (let i = 0; i < adults; i++) {
         initializeCountryCodeDisplay(i);
     }
+    
+    // Populate traveller dropdowns
+    populateTravellerDropdowns();
 }
 
 function generatePassengerForm(type, index, number) {
@@ -971,7 +991,16 @@ function generatePassengerForm(type, index, number) {
     
     return `
         <div class="bg-gray-50 p-4 rounded-lg mb-4">
-            <h4 class="font-semibold text-gray-800 mb-3">${displayType} ${number}</h4>
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="font-semibold text-gray-800">${displayType} ${number}</h4>
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm font-medium text-gray-700">Quick Select:</label>
+                    <select id="travellerSelect_${index}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" onchange="populateFromTraveller(${index})">
+                        <option value="">Choose existing traveller...</option>
+                        <!-- Travellers will be populated here -->
+                    </select>
+                </div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
@@ -1600,7 +1629,149 @@ function initializeCountryCodeDisplay(index) {
     }
 }
 
+// Load existing travellers from API
+async function loadExistingTravellers() {
+    try {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        
+        const baseUrl = await getBaseUrl();
+        const response = await axios.get(`${baseUrl}/v1/users/travelers`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.data.status === 'true' || response.data.status === true) {
+            // Extract travelers from the nested data structure
+            existingTravellers = response.data.data.travelers || [];
+            console.log('Loaded existing travellers:', existingTravellers);
+        } else {
+            console.warn('Failed to load travellers:', response.data.message);
+            existingTravellers = [];
+        }
+        
+    } catch (error) {
+        console.error('Error loading existing travellers:', error);
+        existingTravellers = [];
+    }
+}
+
+// Get base URL from config
+async function getBaseUrl() {
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        return config.apiBaseUrl;
+    } catch (error) {
+        return 'https://api.tripzip.ai'; // Fallback
+    }
+}
+
+// Populate traveller dropdowns after forms are generated
+function populateTravellerDropdowns() {
+    const adults = parseInt(document.getElementById('adultsCount').textContent) || 1;
+    const children = parseInt(document.getElementById('childrenCount').textContent) || 0;
+    const infants = parseInt(document.getElementById('infantsCount').textContent) || 0;
+    const totalPassengers = adults + children + infants;
+    
+    for (let i = 0; i < totalPassengers; i++) {
+        const select = document.getElementById(`travellerSelect_${i}`);
+        if (select && existingTravellers.length > 0) {
+            // Clear existing options except the default
+            select.innerHTML = '<option value="">Choose existing traveller...</option>';
+            
+            // Add travellers to dropdown - filter by passenger type for better UX
+            const passengerType = document.getElementById(`type_${i}`).value;
+            const compatibleTravellers = existingTravellers.filter(traveller => {
+                // Adults can use any adult travellers
+                if (passengerType === 'adult') return traveller.passenger_type === 'adult';
+                // Children and infants can use child travellers or adult travellers  
+                return traveller.passenger_type === 'adult' || traveller.passenger_type === 'child';
+            });
+            
+            compatibleTravellers.forEach(traveller => {
+                const option = document.createElement('option');
+                option.value = traveller.id;
+                option.textContent = `${traveller.first_name} ${traveller.last_name} (${traveller.passenger_type})`;
+                select.appendChild(option);
+            });
+        }
+    }
+}
+
+// Populate form fields from selected traveller
+function populateFromTraveller(passengerIndex) {
+    const select = document.getElementById(`travellerSelect_${passengerIndex}`);
+    const travellerId = select.value;
+    
+    if (!travellerId) return;
+    
+    const traveller = existingTravellers.find(t => t.id === travellerId);
+    if (!traveller) return;
+    
+    // Populate form fields
+    document.getElementById(`title_${passengerIndex}`).value = traveller.title ? traveller.title.toLowerCase().replace('.', '') : '';
+    document.getElementById(`gender_${passengerIndex}`).value = traveller.gender === 'male' ? 'm' : traveller.gender === 'female' ? 'f' : '';
+    document.getElementById(`firstName_${passengerIndex}`).value = traveller.first_name || '';
+    document.getElementById(`lastName_${passengerIndex}`).value = traveller.last_name || '';
+    document.getElementById(`dob_${passengerIndex}`).value = traveller.date_of_birth || '';
+    
+    // For adults, also populate email and phone
+    const type = document.getElementById(`type_${passengerIndex}`).value;
+    if (type === 'adult') {
+        const emailField = document.getElementById(`email_${passengerIndex}`);
+        const phoneField = document.getElementById(`phone_${passengerIndex}`);
+        
+        if (emailField && traveller.email) {
+            emailField.value = traveller.email;
+        }
+        
+        if (phoneField && traveller.phone_number) {
+            // Check if phone number already has country code
+            const phoneMatch = traveller.phone_number.match(/^(\+\d{1,4})(.*)$/);
+            if (phoneMatch) {
+                const countryCode = phoneMatch[1];
+                const phoneNumber = phoneMatch[2];
+                
+                // Set country code
+                const phoneCodeField = document.getElementById(`phoneCode_${passengerIndex}`);
+                const searchField = document.getElementById(`phoneCodeSearch_${passengerIndex}`);
+                
+                if (phoneCodeField && searchField) {
+                    phoneCodeField.value = countryCode;
+                    
+                    // Find country info for display
+                    const country = countryCodes.find(c => c.code === countryCode);
+                    if (country) {
+                        searchField.value = `${country.code} (${country.abbr})`;
+                    } else {
+                        searchField.value = countryCode;
+                    }
+                }
+                
+                // Set phone number
+                phoneField.value = phoneNumber;
+            } else {
+                // Assume it's a local number, use default +880 for Bangladesh
+                const phoneCodeField = document.getElementById(`phoneCode_${passengerIndex}`);
+                const searchField = document.getElementById(`phoneCodeSearch_${passengerIndex}`);
+                
+                if (phoneCodeField && searchField) {
+                    phoneCodeField.value = '+880';
+                    searchField.value = '+880 (BD)';
+                }
+                
+                phoneField.value = traveller.phone_number;
+            }
+        }
+    }
+    
+    console.log(`Populated passenger ${passengerIndex} with traveller:`, traveller);
+}
+
 // Make functions globally available
 window.showCountryDropdown = showCountryDropdown;
+window.populateFromTraveller = populateFromTraveller;
 window.filterCountryCodes = filterCountryCodes;
 window.selectCountryCode = selectCountryCode;
