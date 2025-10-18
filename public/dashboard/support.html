@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - Soft Flight</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/components/nav.css">
+    <link rel="stylesheet" href="/dashboard/components/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50 dashboard-page">
+    <!-- Navigation -->
+    <div id="navigation"></div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container flex min-h-screen">
+        <!-- Dashboard Sidebar -->
+        <aside class="dashboard-sidebar w-64 bg-white shadow-sm border-r border-gray-200">
+            <!-- Sidebar will be injected by sidebar.js -->
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="dashboard-main flex-1 p-6 overflow-auto">
+            <div class="max-w-4xl mx-auto pt-4">
+                <!-- Page Header -->
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900">Support Center</h1>
+                    <p class="text-gray-600 mt-2">Get help with your bookings, account, and travel questions</p>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="dashboard-card p-6 text-center cursor-pointer hover:shadow-lg transition-shadow" onclick="supportManager.scrollToSection('contact')">
+                        <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-headset text-orange-600 text-xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Contact Support</h3>
+                        <p class="text-sm text-gray-600">Get direct help from our support team</p>
+                    </div>
+                    
+                    <div class="dashboard-card p-6 text-center cursor-pointer hover:shadow-lg transition-shadow" onclick="supportManager.scrollToSection('faq')">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-question-circle text-blue-600 text-xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">FAQ</h3>
+                        <p class="text-sm text-gray-600">Find answers to common questions</p>
+                    </div>
+                    
+                    <div class="dashboard-card p-6 text-center cursor-pointer hover:shadow-lg transition-shadow" onclick="supportManager.scrollToSection('policies')">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-file-alt text-green-600 text-xl"></i>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Policies</h3>
+                        <p class="text-sm text-gray-600">Review our terms and policies</p>
+                    </div>
+                </div>
+
+                <!-- Contact Form Section -->
+                <section id="contact" class="mb-12">
+                    <div class="dashboard-card">
+                        <div class="p-6 border-b border-gray-200">
+                            <h2 class="text-xl font-semibold text-gray-900">Contact Support</h2>
+                            <p class="text-gray-600 mt-1">Send us a message and we'll get back to you within 24 hours</p>
+                        </div>
+                        
+                        <div class="p-6">
+                            <form id="supportForm" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="form-group">
+                                        <label for="contactName" class="form-label">Full Name *</label>
+                                        <input type="text" id="contactName" name="contactName" class="form-input" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="contactEmail" class="form-label">Email Address *</label>
+                                        <input type="email" id="contactEmail" name="contactEmail" class="form-input" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="contactSubject" class="form-label">Subject *</label>
+                                    <select id="contactSubject" name="contactSubject" class="form-input" required>
+                                        <option value="">Select a topic</option>
+                                        <option value="booking-issue">Booking Issue</option>
+                                        <option value="payment-problem">Payment Problem</option>
+                                        <option value="account-access">Account Access</option>
+                                        <option value="flight-changes">Flight Changes</option>
+                                        <option value="cancellation">Cancellation Request</option>
+                                        <option value="technical-issue">Technical Issue</option>
+                                        <option value="feedback">Feedback</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="bookingReference" class="form-label">Booking Reference (if applicable)</label>
+                                    <input type="text" id="bookingReference" name="bookingReference" 
+                                           class="form-input" placeholder="Enter your booking reference">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="contactMessage" class="form-label">Message *</label>
+                                    <textarea id="contactMessage" name="contactMessage" rows="6" 
+                                              class="form-input" placeholder="Please describe your issue or question in detail..." required></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="contactPriority" class="form-label">Priority</label>
+                                    <select id="contactPriority" name="contactPriority" class="form-input">
+                                        <option value="normal">Normal</option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button type="submit" id="submitSupportBtn" class="btn-primary">
+                                        <span id="submitSupportText">Send Message</span>
+                                        <div id="submitSupportSpinner" class="hidden flex items-center">
+                                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            <span>Sending...</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAQ Section -->
+                <section id="faq" class="mb-12">
+                    <div class="dashboard-card">
+                        <div class="p-6 border-b border-gray-200">
+                            <h2 class="text-xl font-semibold text-gray-900">Frequently Asked Questions</h2>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <div class="faq-item border border-gray-200 rounded-lg">
+                                    <button class="faq-question w-full text-left p-4 font-medium text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                                        <span>How can I change or cancel my booking?</span>
+                                        <i class="fas fa-chevron-down text-gray-400"></i>
+                                    </button>
+                                    <div class="faq-answer hidden p-4 border-t border-gray-200 bg-gray-50">
+                                        <p class="text-gray-700">You can change or cancel your booking by visiting the "My Bookings" section in your dashboard. Please note that cancellation fees may apply depending on the airline's policy and how close to departure your flight is.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="faq-item border border-gray-200 rounded-lg">
+                                    <button class="faq-question w-full text-left p-4 font-medium text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                                        <span>What documents do I need for travel?</span>
+                                        <i class="fas fa-chevron-down text-gray-400"></i>
+                                    </button>
+                                    <div class="faq-answer hidden p-4 border-t border-gray-200 bg-gray-50">
+                                        <p class="text-gray-700">For domestic flights, you typically need a valid government-issued photo ID. For international flights, you'll need a passport and possibly a visa depending on your destination. Check with the embassy or consulate of your destination country for specific requirements.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="faq-item border border-gray-200 rounded-lg">
+                                    <button class="faq-question w-full text-left p-4 font-medium text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                                        <span>How do I add baggage to my booking?</span>
+                                        <i class="fas fa-chevron-down text-gray-400"></i>
+                                    </button>
+                                    <div class="faq-answer hidden p-4 border-t border-gray-200 bg-gray-50">
+                                        <p class="text-gray-700">You can add baggage during the booking process or later through the airline's website using your booking reference. Adding baggage in advance is usually cheaper than paying at the airport.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="faq-item border border-gray-200 rounded-lg">
+                                    <button class="faq-question w-full text-left p-4 font-medium text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                                        <span>What happens if my flight is delayed or cancelled?</span>
+                                        <i class="fas fa-chevron-down text-gray-400"></i>
+                                    </button>
+                                    <div class="faq-answer hidden p-4 border-t border-gray-200 bg-gray-50">
+                                        <p class="text-gray-700">If your flight is delayed or cancelled, the airline will typically rebook you on the next available flight at no extra cost. You may also be entitled to compensation depending on the circumstances and regulations in your region.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="faq-item border border-gray-200 rounded-lg">
+                                    <button class="faq-question w-full text-left p-4 font-medium text-gray-900 hover:bg-gray-50 flex justify-between items-center">
+                                        <span>How can I select my seat?</span>
+                                        <i class="fas fa-chevron-down text-gray-400"></i>
+                                    </button>
+                                    <div class="faq-answer hidden p-4 border-t border-gray-200 bg-gray-50">
+                                        <p class="text-gray-700">Seat selection can usually be done during booking or later through the airline's website. Some airlines charge for seat selection, while others offer it for free. You can also check in online 24 hours before departure to select available seats.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Policies Section -->
+                <section id="policies" class="mb-12">
+                    <div class="dashboard-card">
+                        <div class="p-6 border-b border-gray-200">
+                            <h2 class="text-xl font-semibold text-gray-900">Policies & Information</h2>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="font-semibold text-gray-900 mb-2">Booking Policy</h3>
+                                    <p class="text-gray-700 text-sm leading-relaxed">
+                                        All bookings are subject to airline terms and conditions. Prices are subject to change until payment is completed. 
+                                        We recommend reviewing all booking details before confirming your purchase.
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="font-semibold text-gray-900 mb-2">Cancellation Policy</h3>
+                                    <p class="text-gray-700 text-sm leading-relaxed">
+                                        Cancellation terms vary by airline and ticket type. Refundable tickets can be cancelled for a full refund, 
+                                        while non-refundable tickets may incur cancellation fees or offer travel credits instead.
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="font-semibold text-gray-900 mb-2">Privacy Policy</h3>
+                                    <p class="text-gray-700 text-sm leading-relaxed">
+                                        We protect your personal information and only share it with airlines and service providers necessary to 
+                                        complete your booking. We never sell your personal data to third parties.
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <h3 class="font-semibold text-gray-900 mb-2">Payment Security</h3>
+                                    <p class="text-gray-700 text-sm leading-relaxed">
+                                        All payments are processed through secure, encrypted connections. We use industry-standard security 
+                                        measures to protect your financial information.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact Information -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="dashboard-card p-6 text-center">
+                        <i class="fas fa-phone text-orange-600 text-2xl mb-3"></i>
+                        <h3 class="font-semibold text-gray-900 mb-2">Phone Support</h3>
+                        <p class="text-gray-600 text-sm mb-2">Available 24/7</p>
+                        <p class="text-orange-600 font-medium">+1 (555) 123-4567</p>
+                    </div>
+                    
+                    <div class="dashboard-card p-6 text-center">
+                        <i class="fas fa-envelope text-orange-600 text-2xl mb-3"></i>
+                        <h3 class="font-semibold text-gray-900 mb-2">Email Support</h3>
+                        <p class="text-gray-600 text-sm mb-2">Response within 24 hours</p>
+                        <p class="text-orange-600 font-medium">support@softflight.com</p>
+                    </div>
+                    
+                    <div class="dashboard-card p-6 text-center">
+                        <i class="fas fa-comments text-orange-600 text-2xl mb-3"></i>
+                        <h3 class="font-semibold text-gray-900 mb-2">Live Chat</h3>
+                        <p class="text-gray-600 text-sm mb-2">Available 9 AM - 11 PM</p>
+                        <button class="text-orange-600 font-medium hover:text-orange-700">Start Chat</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/components/nav.js"></script>
+    <script src="/dashboard/components/sidebar.js"></script>
+    <script src="/dashboard/support.js"></script>
+</body>
+</html>

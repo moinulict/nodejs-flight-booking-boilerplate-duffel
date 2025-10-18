@@ -1,0 +1,449 @@
+/* Dashboard Shared Styles */
+
+.sidebar-active {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    color: white;
+}
+
+.sidebar-active i {
+    color: white;
+}
+
+.profile-card {
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
+    border: 1px solid #e2e8f0;
+}
+
+.info-card {
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar-link {
+    transition: all 0.3s ease;
+}
+
+.sidebar-link:hover {
+    background: linear-gradient(135deg, #ea580c, #dc2626) !important;
+    color: white !important;
+    transform: translateX(4px);
+}
+
+.sidebar-link:hover i {
+    color: white !important;
+}
+
+.sidebar-link:hover span {
+    color: white !important;
+}
+
+.sidebar-link.active {
+    background: linear-gradient(135deg, #ea580c, #dc2626) !important;
+    color: white !important;
+    transform: translateX(4px);
+}
+
+.sidebar-link.active i {
+    color: white !important;
+}
+
+.sidebar-link.active span {
+    color: white !important;
+}
+
+.sidebar-link.active:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    color: white !important;
+}
+
+.sidebar-link.active:hover i {
+    color: white !important;
+}
+
+.sidebar-link.active:hover span {
+    color: white !important;
+}
+
+/* Dashboard Layout */
+.dashboard-container {
+    margin-top: 85px !important; /* Account for fixed navigation header + small buffer */
+    min-height: calc(100vh - 85px);
+}
+
+/* Ensure body has proper top padding for fixed header */
+body.dashboard-page {
+    padding-top: 0;
+}
+
+/* Fix for dashboard content spacing */
+.dashboard-main {
+    padding-top: 1rem;
+    padding-bottom: 2rem;
+}
+
+/* Ensure content is not cropped */
+.dashboard-main .max-w-6xl,
+.dashboard-main .max-w-4xl,
+.dashboard-main .max-w-2xl {
+    padding-top: 1rem;
+}
+
+/* Sidebar styling */
+.dashboard-sidebar {
+    background-color: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    min-height: calc(100vh - 80px);
+}
+
+.sidebar-link {
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar-link:hover {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    color: white !important;
+}
+
+.sidebar-link:hover i {
+    color: white !important;
+}
+
+.sidebar-link:hover span {
+    color: white !important;
+}
+
+.sidebar-link.active {
+    background: linear-gradient(135deg, #ea580c, #dc2626);
+    color: white !important;
+    font-weight: 600;
+}
+
+.sidebar-link.active i {
+    color: white !important;
+}
+
+.sidebar-link.active span {
+    color: white !important;
+}
+
+.dashboard-main {
+    flex: 1;
+    overflow: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-sidebar {
+        display: none;
+    }
+    
+    .dashboard-sidebar.mobile-open {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 50;
+    }
+    
+    .dashboard-main {
+        width: 100%;
+    }
+}
+
+/* Form Styles */
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
+
+/* Input Group Styles */
+.input-group {
+    display: flex;
+    width: 100%;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: visible; /* Changed from hidden to visible */
+    transition: all 0.2s ease;
+    background: white;
+    position: relative; /* Added for proper z-index stacking */
+}
+
+.input-group:focus-within {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+    z-index: 1001; /* Ensure focused input group is above dropdown */
+}
+
+.input-group-prepend {
+    position: relative;
+    z-index: 1002; /* Higher than modal backdrop */
+}
+
+.input-group-prepend::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 60%;
+    width: 1px;
+    background-color: #e5e7eb;
+}
+
+.country-select {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0.75rem 2rem 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    min-width: 120px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1em 1em;
+}
+
+.country-select:focus {
+    outline: none;
+    background-color: #f9fafb;
+}
+
+.phone-input {
+    flex: 1;
+    border: none;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    background: transparent;
+    min-width: 0;
+}
+
+.phone-input:focus {
+    outline: none;
+}
+
+.phone-input::placeholder {
+    color: #9ca3af;
+}
+
+/* Country Select Search Functionality */
+.country-select option {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.country-select option:hover {
+    background-color: #f3f4f6;
+}
+
+/* Enhanced styling for better visual hierarchy */
+.input-group:hover {
+    border-color: #d1d5db;
+}
+
+.country-select {
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Custom dropdown positioning fixes */
+.custom-country-dropdown {
+    position: relative !important;
+    z-index: 1003 !important;
+}
+
+.country-dropdown-menu {
+    position: absolute !important;
+    z-index: 9999 !important;
+    background: white !important;
+    border: 2px solid #ea580c !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Ensure dropdown appears above modal backdrop */
+.modal .custom-country-dropdown {
+    z-index: 1060 !important;
+}
+
+.modal .country-dropdown-menu {
+    z-index: 1061 !important;
+}
+
+/* Fix for modal overflow issues */
+.modal .form-group {
+    position: relative;
+    z-index: 1;
+}
+
+.modal .input-group {
+    position: relative;
+    z-index: 2;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+/* Button variants */
+.btn-primary {
+    background: linear-gradient(to right, #ea580c, #f97316);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(to right, #c2410c, #ea580c);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+.btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+/* Status badges */
+.status-badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+}
+
+.status-confirmed {
+    @apply bg-green-100 text-green-800;
+}
+
+.status-pending {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-cancelled {
+    @apply bg-red-100 text-red-800;
+}
+
+.status-completed {
+    @apply bg-blue-100 text-blue-800;
+}
+
+.status-unknown {
+    @apply bg-gray-100 text-gray-800;
+}
+
+/* Password strength indicators */
+.password-strength {
+    width: 100%;
+}
+
+.strength-bar {
+    height: 4px;
+    flex: 1;
+    background-color: #e5e7eb;
+    border-radius: 2px;
+    transition: background-color 0.3s ease;
+}
+
+.strength-very-weak {
+    background-color: #dc2626 !important;
+    color: #dc2626 !important;
+}
+
+.strength-weak {
+    background-color: #ea580c !important;
+    color: #ea580c !important;
+}
+
+.strength-fair {
+    background-color: #eab308 !important;
+    color: #eab308 !important;
+}
+
+.strength-good {
+    background-color: #16a34a !important;
+    color: #16a34a !important;
+}
+
+.strength-strong {
+    background-color: #059669 !important;
+    color: #059669 !important;
+}
+
+/* Card Styles */
+.dashboard-card {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Loading States */
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #f3f4f6;
+    border-radius: 50%;
+    border-top-color: #ea580c;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Success/Error States */
+.alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background-color: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    color: #065f46;
+}
+
+.alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.alert-info {
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+}

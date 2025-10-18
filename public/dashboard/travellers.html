@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Travellers - Soft Flight</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/components/nav.css">
+    <link rel="stylesheet" href="/dashboard/components/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50 dashboard-page">
+    <!-- Navigation -->
+    <div id="navigation"></div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container flex min-h-screen">
+        <!-- Dashboard Sidebar -->
+        <aside class="dashboard-sidebar w-64 bg-white shadow-sm border-r border-gray-200">
+            <!-- Sidebar will be injected by sidebar.js -->
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="dashboard-main flex-1 p-6 overflow-auto">
+            <div class="max-w-6xl mx-auto pt-4">
+                <!-- Page Header -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">My Travellers</h1>
+                            <p class="text-gray-600 mt-2">Manage your saved traveller profiles for faster bookings</p>
+                        </div>
+                        <button id="addTravellerBtn" class="btn-primary flex items-center space-x-2" 
+                                style="background: linear-gradient(to right, #ea580c, #f97316); color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; border: none; cursor: pointer; font-weight: 500;">
+                            <i class="fas fa-plus"></i>
+                            <span>Add New Traveller</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Travellers Table -->
+                <div class="dashboard-card">
+                    <!-- Loading State -->
+                    <div id="loadingTravellers" class="text-center py-12">
+                        <div class="flex items-center justify-center space-x-2">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                            <span class="text-gray-600">Loading travellers...</span>
+                        </div>
+                    </div>
+
+                    <!-- Travellers Table -->
+                    <div id="travellersTable" class="hidden overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="travellersTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Traveller rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden text-center py-16">
+                    <div class="max-w-md mx-auto">
+                        <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Travellers Yet</h3>
+                        <p class="text-gray-600 mb-6">Add your first traveller profile to make future bookings faster and easier.</p>
+                        <button id="addFirstTravellerBtn" class="btn-primary">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Your First Traveller
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Traveller Modal -->
+    <div id="travellerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-900">Add New Traveller</h3>
+                    <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="travellerForm" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Personal Information -->
+                    <div class="md:col-span-2">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">Personal Information</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="title" class="form-label">Title *</label>
+                        <select id="title" name="title" class="form-input" required>
+                            <option value="">Select Title</option>
+                            <option value="Mr.">Mr.</option>
+                            <option value="Mrs.">Mrs.</option>
+                            <option value="Ms.">Ms.</option>
+                            <option value="Miss">Miss</option>
+                            <option value="Dr.">Dr.</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="firstName" class="form-label">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lastName" class="form-label">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dateOfBirth" class="form-label">Date of Birth *</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gender" class="form-label">Gender *</label>
+                        <select id="gender" name="gender" class="form-input" required>
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Contact Information -->
+                    <div class="md:col-span-2 mt-6">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">Contact Information</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address *</label>
+                        <input type="email" id="email" name="email" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Phone Number *</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <select id="countryCode" name="countryCode" class="country-select" required>
+                                    <option value="">🌍 Code</option>
+                                    <option value="+1" data-search="united states usa america">🇺🇸 +1</option>
+                                    <option value="+1" data-search="canada">🇨🇦 +1</option>
+                                    <option value="+44" data-search="united kingdom uk britain england">🇬🇧 +44</option>
+                                    <option value="+33" data-search="france">🇫🇷 +33</option>
+                                    <option value="+49" data-search="germany deutschland">🇩🇪 +49</option>
+                                    <option value="+39" data-search="italy italia">🇮🇹 +39</option>
+                                    <option value="+34" data-search="spain espana">🇪🇸 +34</option>
+                                    <option value="+31" data-search="netherlands holland">🇳🇱 +31</option>
+                                    <option value="+32" data-search="belgium">🇧🇪 +32</option>
+                                    <option value="+41" data-search="switzerland">🇨🇭 +41</option>
+                                    <option value="+43" data-search="austria">🇦🇹 +43</option>
+                                    <option value="+45" data-search="denmark">🇩🇰 +45</option>
+                                    <option value="+46" data-search="sweden">🇸🇪 +46</option>
+                                    <option value="+47" data-search="norway">🇳🇴 +47</option>
+                                    <option value="+358" data-search="finland">🇫🇮 +358</option>
+                                    <option value="+91" data-search="india">🇮🇳 +91</option>
+                                    <option value="+86" data-search="china">🇨🇳 +86</option>
+                                    <option value="+81" data-search="japan">🇯🇵 +81</option>
+                                    <option value="+82" data-search="south korea korea">🇰🇷 +82</option>
+                                    <option value="+65" data-search="singapore">🇸🇬 +65</option>
+                                    <option value="+60" data-search="malaysia">🇲🇾 +60</option>
+                                    <option value="+66" data-search="thailand">🇹🇭 +66</option>
+                                    <option value="+84" data-search="vietnam">🇻🇳 +84</option>
+                                    <option value="+63" data-search="philippines">🇵🇭 +63</option>
+                                    <option value="+62" data-search="indonesia">🇮🇩 +62</option>
+                                    <option value="+61" data-search="australia">🇦🇺 +61</option>
+                                    <option value="+64" data-search="new zealand">🇳🇿 +64</option>
+                                    <option value="+27" data-search="south africa">🇿🇦 +27</option>
+                                    <option value="+20" data-search="egypt">🇪🇬 +20</option>
+                                    <option value="+971" data-search="united arab emirates uae dubai">🇦🇪 +971</option>
+                                    <option value="+966" data-search="saudi arabia">🇸🇦 +966</option>
+                                    <option value="+974" data-search="qatar">🇶🇦 +974</option>
+                                    <option value="+965" data-search="kuwait">🇰🇼 +965</option>
+                                    <option value="+973" data-search="bahrain">🇧🇭 +973</option>
+                                    <option value="+968" data-search="oman">🇴🇲 +968</option>
+                                    <option value="+880" data-search="bangladesh">🇧🇩 +880</option>
+                                    <option value="+92" data-search="pakistan">🇵🇰 +92</option>
+                                    <option value="+94" data-search="sri lanka">🇱🇰 +94</option>
+                                    <option value="+977" data-search="nepal">🇳🇵 +977</option>
+                                    <option value="+98" data-search="iran">🇮🇷 +98</option>
+                                    <option value="+964" data-search="iraq">🇮🇶 +964</option>
+                                    <option value="+90" data-search="turkey">🇹🇷 +90</option>
+                                    <option value="+7" data-search="russia">🇷🇺 +7</option>
+                                    <option value="+380" data-search="ukraine">🇺🇦 +380</option>
+                                    <option value="+48" data-search="poland">🇵🇱 +48</option>
+                                    <option value="+420" data-search="czech republic">🇨🇿 +420</option>
+                                    <option value="+36" data-search="hungary">🇭🇺 +36</option>
+                                    <option value="+40" data-search="romania">🇷🇴 +40</option>
+                                    <option value="+359" data-search="bulgaria">🇧🇬 +359</option>
+                                    <option value="+385" data-search="croatia">🇭🇷 +385</option>
+                                    <option value="+381" data-search="serbia">🇷🇸 +381</option>
+                                    <option value="+55" data-search="brazil">🇧🇷 +55</option>
+                                    <option value="+52" data-search="mexico">🇲🇽 +52</option>
+                                    <option value="+54" data-search="argentina">🇦🇷 +54</option>
+                                    <option value="+56" data-search="chile">🇨🇱 +56</option>
+                                    <option value="+57" data-search="colombia">🇨🇴 +57</option>
+                                    <option value="+51" data-search="peru">🇵🇪 +51</option>
+                                </select>
+                            </div>
+                            <input type="tel" id="phone" name="phone" class="phone-input" 
+                                   placeholder="Enter phone number" 
+                                   pattern="[0-9\s\-\(\)]{7,15}" 
+                                   title="Please enter a valid phone number (7-15 digits)" required>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Select country code and enter your phone number</p>
+                    </div>
+                    
+                    <!-- Passport Information -->
+                    <div class="md:col-span-2 mt-6">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">Passport Information</h4>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="passportNumber" class="form-label">Passport Number</label>
+                        <input type="text" id="passportNumber" name="passportNumber" class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="passportCountry" class="form-label">Issuing Country</label>
+                        <select id="passportCountry" name="passportCountry" class="form-input">
+                            <option value="">Select Country</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="passportExpiry" class="form-label">Expiry Date</label>
+                        <input type="date" id="passportExpiry" name="passportExpiry" class="form-input">
+                    </div>
+                    
+                    <!-- Traveller Type -->
+                    <div class="form-group">
+                        <label for="travellerType" class="form-label">Traveller Type *</label>
+                        <select id="travellerType" name="travellerType" class="form-input" required>
+                            <option value="">Select Type</option>
+                            <option value="adult">Adult (12+ years)</option>
+                            <option value="child">Child (2-11 years)</option>
+                            <option value="infant">Infant (under 2 years)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+                    <button type="button" id="cancelBtn" class="btn-secondary">Cancel</button>
+                    <button type="submit" id="saveBtn" class="btn-primary">
+                        <span id="saveText">Save Traveller</span>
+                        <div id="saveSpinner" class="hidden flex items-center">
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            <span>Saving...</span>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-trash-alt text-red-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Delete Traveller</h3>
+                        <p class="text-gray-600">This action cannot be undone</p>
+                    </div>
+                </div>
+                
+                <p class="text-gray-700 mb-6">Are you sure you want to delete <strong id="deleteTravellerName"></strong>? This will remove all their information permanently.</p>
+                
+                <div class="flex justify-end space-x-4">
+                    <button id="cancelDeleteBtn" class="btn-secondary">Cancel</button>
+                    <button id="confirmDeleteBtn" class="btn-danger">Delete Traveller</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/components/nav.js"></script>
+    <script src="/dashboard/components/sidebar.js"></script>
+    <script src="/dashboard/travellers.js"></script>
+</body>
+</html>

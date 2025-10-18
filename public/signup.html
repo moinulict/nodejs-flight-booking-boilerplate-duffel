@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign up for Soft Flight Booking - Join thousands of travelers">
+    <title>Sign Up - Soft Flight Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="components/nav.css">
+    <style>
+        .hero-background {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('img/hero-background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+        .signup-card {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .otp-input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .otp-input:focus {
+            border-color: #ea580c;
+            box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+            outline: none;
+        }
+        
+        .otp-input.filled {
+            border-color: #ea580c;
+            background-color: #fff7ed;
+        }
+        
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        
+        .step-indicator.active {
+            background: linear-gradient(45deg, #ea580c, #dc2626);
+            color: white;
+        }
+        
+        .step-indicator.completed {
+            background: #10b981;
+            color: white;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-button {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .country-dropdown {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .country-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .country-option:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .country-option.selected {
+            background-color: #ea580c;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation will be inserted here by nav.js -->
+
+    <!-- Main Content -->
+    <div class="hero-background min-h-screen flex items-center justify-center">
+        <div class="container mx-auto px-4 py-20">
+            <div class="max-w-md mx-auto">
+                <!-- Step Indicators -->
+                <div class="flex justify-center items-center mb-8">
+                    <div class="flex items-center space-x-4">
+                        <div class="step-indicator active w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm" id="step1Indicator">
+                            1
+                        </div>
+                        <div class="w-12 h-0.5 bg-gray-300" id="connector1"></div>
+                        <div class="step-indicator w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-gray-300 text-gray-500" id="step2Indicator">
+                            2
+                        </div>
+                        <div class="w-12 h-0.5 bg-gray-300" id="connector2"></div>
+                        <div class="step-indicator w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-gray-300 text-gray-500" id="step3Indicator">
+                            3
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signup Card -->
+                <div class="signup-card rounded-2xl shadow-2xl p-8">
+                    <!-- Step 1: Email Input -->
+                    <div id="step1" class="fade-in">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-envelope text-white text-2xl"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Create Your Account</h2>
+                            <p class="text-gray-600">Enter your email to get started</p>
+                        </div>
+                        
+                        <form id="emailForm">
+                            <div class="input-group mb-6">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                                <input type="email" id="email" placeholder="your@email.com" required
+                                       class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                <div id="emailError" class="text-red-500 text-sm mt-1 hidden"></div>
+                            </div>
+                            
+                            <button type="submit" id="sendOtpBtn" 
+                                    class="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-xl hover:from-orange-700 hover:to-orange-600 transition duration-200 font-semibold text-lg shadow-xl">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <span id="sendOtpText">Send OTP</span>
+                                </span>
+                            </button>
+                        </form>
+                        
+                        <div class="text-center mt-6">
+                            <p class="text-gray-600">Already have an account? 
+                                <a href="login.html" class="text-orange-600 hover:text-orange-700 font-semibold">Sign In</a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: OTP Verification -->
+                    <div id="step2" class="hidden">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-shield-alt text-white text-2xl"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Verify Your Email</h2>
+                            <p class="text-gray-600">Enter the 6-digit code sent to</p>
+                            <p class="text-orange-600 font-semibold" id="emailDisplay"></p>
+                        </div>
+                        
+                        <form id="otpForm">
+                            <div class="mb-6">
+                                <label class="block text-sm font-semibold text-gray-700 mb-4 text-center">Verification Code</label>
+                                <div class="flex justify-center space-x-3 mb-4">
+                                    <input type="text" class="otp-input" maxlength="1" id="otp1">
+                                    <input type="text" class="otp-input" maxlength="1" id="otp2">
+                                    <input type="text" class="otp-input" maxlength="1" id="otp3">
+                                    <input type="text" class="otp-input" maxlength="1" id="otp4">
+                                    <input type="text" class="otp-input" maxlength="1" id="otp5">
+                                    <input type="text" class="otp-input" maxlength="1" id="otp6">
+                                </div>
+                                <div id="otpError" class="text-red-500 text-sm text-center hidden"></div>
+                                <div class="text-center">
+                                    <p class="text-sm text-gray-600">Code expires in <span id="otpTimer" class="font-semibold text-orange-600">10:00</span></p>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" id="verifyOtpBtn" 
+                                    class="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-700 hover:to-blue-600 transition duration-200 font-semibold text-lg shadow-xl mb-4">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span id="verifyOtpText">Verify OTP</span>
+                                </span>
+                            </button>
+                            
+                            <button type="button" id="resendOtpBtn" 
+                                    class="w-full py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:border-orange-500 hover:text-orange-600 transition duration-200 font-medium">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <i class="fas fa-redo"></i>
+                                    <span>Resend OTP</span>
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Step 3: Complete Registration -->
+                    <div id="step3" class="hidden">
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-user-plus text-white text-2xl"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Complete Your Profile</h2>
+                            <p class="text-gray-600">Just a few more details to get you started</p>
+                        </div>
+                        
+                        <form id="registrationForm">
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="input-group">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+                                        <input type="text" id="firstName" placeholder="John" required
+                                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                    </div>
+                                    <div class="input-group">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                                        <input type="text" id="lastName" placeholder="Doe" required
+                                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                    </div>
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Display Name</label>
+                                    <input type="text" id="displayName" placeholder="John D" required
+                                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number (Optional)</label>
+                                    <div class="flex gap-2">
+                                        <div class="relative">
+                                            <button type="button" id="countryCodeBtn" 
+                                                    class="h-full px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white hover:bg-gray-50 flex items-center space-x-2 min-w-[120px]">
+                                                <span id="selectedFlag">🇺🇸</span>
+                                                <span id="selectedCode">+1</span>
+                                                <i class="fas fa-chevron-down text-xs"></i>
+                                            </button>
+                                            <div id="countryDropdown" class="absolute top-full left-0 right-0 bg-white border-2 border-gray-200 rounded-xl mt-1 shadow-xl z-40 hidden">
+                                                <div class="p-3">
+                                                    <input type="text" id="countrySearch" placeholder="Search countries..."
+                                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm">
+                                                </div>
+                                                <div id="countryList" class="country-dropdown">
+                                                    <!-- Country options will be populated by JavaScript -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <input type="tel" id="phoneNumber" placeholder="123456789"
+                                               class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                    </div>
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                                    <div class="relative">
+                                        <input type="password" id="password" placeholder="Create a strong password" required
+                                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base pr-12">
+                                        <button type="button" id="togglePassword" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700">
+                                            <i class="fas fa-eye" id="passwordIcon"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Password must be at least 8 characters long
+                                    </div>
+                                </div>
+                                
+                                <div class="input-group">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                                    <input type="password" id="confirmPassword" placeholder="Confirm your password" required
+                                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                    <div id="passwordMatchError" class="text-red-500 text-sm mt-1 hidden">Passwords do not match</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <label class="flex items-start space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="agreeTerms" required class="w-4 h-4 text-orange-600 mt-1">
+                                    <span class="text-sm text-gray-600">
+                                        I agree to the <a href="#" class="text-orange-600 hover:text-orange-700 font-semibold">Terms & Conditions</a> 
+                                        and <a href="#" class="text-orange-600 hover:text-orange-700 font-semibold">Privacy Policy</a>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div id="registrationError" class="text-red-500 text-sm mt-2 hidden text-center"></div>
+                            
+                            <button type="submit" id="completeRegistrationBtn" 
+                                    class="w-full py-4 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl hover:from-green-700 hover:to-green-600 transition duration-200 font-semibold text-lg shadow-xl mt-6">
+                                <span class="flex items-center justify-center space-x-2">
+                                    <i class="fas fa-rocket"></i>
+                                    <span id="completeRegistrationText">Create Account</span>
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="components/nav.js"></script>
+    <script src="signup.js"></script>
+</body>
+</html>

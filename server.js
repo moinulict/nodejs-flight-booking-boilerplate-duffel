@@ -45,6 +45,50 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Signup page
+app.get('/signup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+
+// Flights page
+app.get('/flights', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'flights.html'));
+});
+
+// Login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Forgot password page
+app.get('/forgot-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'forgot-password.html'));
+});
+
+// Dashboard routes
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+});
+
+// Dashboard sub-routes (for future sections)
+app.get('/dashboard/:section', (req, res) => {
+  const section = req.params.section;
+  const allowedSections = ['travellers', 'bookings', 'change-password', 'support'];
+  
+  if (allowedSections.includes(section)) {
+    const filePath = path.join(__dirname, 'public', 'dashboard', `${section}.html`);
+    
+    // Check if file exists, otherwise serve main dashboard
+    if (require('fs').existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+    }
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard', 'index.html'));
+  }
+});
+
 // Search places (airports only) - Local fallback implementation
 app.get('/api/places', async (req, res) => {
   try {
@@ -223,6 +267,14 @@ app.get('/api/order/:orderId', async (req, res) => {
       details: error.response?.data || error.message 
     });
   }
+});
+
+// Config endpoint for frontend
+app.get('/api/config', (req, res) => {
+  res.json({
+    apiBaseUrl: process.env.API_BASE_URL || 'https://api.tripzip.ai',
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Health check

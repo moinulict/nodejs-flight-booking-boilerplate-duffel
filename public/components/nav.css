@@ -1,0 +1,105 @@
+/* Shared Navigation Styles */
+.nav-link {
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -4px;
+    left: 50%;
+    background-color: #F2623C;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* Smooth transitions for mobile menu */
+#mobileMenu {
+    transition: all 0.3s ease;
+}
+
+/* Page body padding to account for fixed header */
+body {
+    padding-top: 80px; /* Height of the fixed header */
+}
+
+/* Responsive logo text */
+@media (max-width: 480px) {
+    .logo-text {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* Active page indicators */
+        /* Navigation active states */
+        .nav-link.active {
+            color: #ea580c !important;
+            font-weight: 600;
+        }
+        
+        .nav-link:hover {
+            color: #ea580c;
+        }
+        
+        /* User dropdown animations */
+        #userDropdown {
+            animation: slideDown 0.2s ease-out;
+            z-index: 9999;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Dropdown hover effects */
+        #userDropdown a:hover,
+        #userDropdown button:hover {
+            background-color: #f8fafc;
+            transition: background-color 0.15s ease-in-out;
+        }
+        
+        /* Ensure dropdown button is clickable */
+        #userDropdownBtn {
+            cursor: pointer;
+            position: relative;
+        }
+        
+        #userDropdownBtn:hover {
+            background-color: #f8fafc;
+        }
+
+/* Mobile menu animation */
+#mobileMenu.slide-down {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Logo hover effect */
+.logo-link:hover {
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
