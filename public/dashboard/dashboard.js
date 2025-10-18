@@ -159,22 +159,6 @@ class DashboardManager {
                 if (profileInitialsEl) profileInitialsEl.style.display = 'none';
             }
             
-            // Update navigation avatar if it exists
-            const navAvatarContainers = document.querySelectorAll('.w-10.h-10.bg-gradient-to-br, .w-12.h-12.bg-gradient-to-br');
-            navAvatarContainers.forEach(container => {
-                let navAvatarImg = container.querySelector('img.nav-avatar');
-                if (!navAvatarImg) {
-                    navAvatarImg = document.createElement('img');
-                    navAvatarImg.className = 'nav-avatar w-full h-full rounded-full object-cover';
-                    container.appendChild(navAvatarImg);
-                }
-                navAvatarImg.src = this.userData.avatar_url;
-                navAvatarImg.style.display = 'block';
-                
-                // Hide initials span
-                const initialsSpan = container.querySelector('span');
-                if (initialsSpan) initialsSpan.style.display = 'none';
-            });
         } else {
             // Show initials if no avatar
             const avatarImages = document.querySelectorAll('.profile-avatar, .nav-avatar');
