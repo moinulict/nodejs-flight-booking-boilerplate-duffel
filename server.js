@@ -40,6 +40,10 @@ const duffelAPI = axios.create({
   }
 });
 
+// Stripe configuration
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
+
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -269,20 +273,398 @@ app.get('/api/order/:orderId', async (req, res) => {
   }
 });
 
+// Stripe Payment Endpoints
+
+// Create payment intent for flight booking
+app.post('/api/create-payment-intent', async (req, res) => {
+  try {
+    const { offer_id, amount, currency, passengers, flightDetails } = req.body;
+    
+    console.log('💳 Creating payment intent:', {
+      offer_id,
+      amount,
+      currency,
+      passengers: passengers.length
+    });
+    
+    // Create a PaymentIntent with the order amount and currency
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: currency.toLowerCase(),
+      metadata: {
+        offer_id: offer_id,
+        passenger_count: passengers.length,
+        flight_route: flightDetails?.route || 'Unknown',
+        booking_type: 'flight_booking'
+      },
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      client_secret: paymentIntent.client_secret,
+      payment_intent_id: paymentIntent.id
+    });
+    
+  } catch (error) {
+    console.error('❌ Payment intent creation failed:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create payment intent',
+      details: error.message 
+    });
+  }
+});
+
+// Confirm payment and process booking
+app.post('/api/confirm-payment-and-book', async (req, res) => {
+  try {
+    const { payment_intent_id, offer_id, passengers, total_amount, total_currency } = req.body;
+    
+    console.log('✅ Processing payment confirmation and booking:', {
+      payment_intent_id,
+      offer_id,
+      passenger_count: passengers.length
+    });
+    
+    // Verify payment was successful
+    const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment not completed',
+        payment_status: paymentIntent.status
+      });
+    }
+    
+    // Payment successful, now book with Duffel
+    const bookingData = {
+      data: {
+        selected_offers: [offer_id],
+        passengers: passengers,
+        payments: [
+          {
+            type: 'balance',
+            currency: total_currency,
+            amount: total_amount
+          }
+        ],
+        type: 'instant'
+      }
+    };
+
+    console.log('📤 Creating Duffel booking after successful payment...');
+    const duffelResponse = await duffelAPI.post('/air/orders', bookingData);
+    
+    console.log('✅ Duffel booking successful:', duffelResponse.data.data.id);
+    
+    // Return both payment and booking information
+    res.json({
+      success: true,
+      payment_intent_id: payment_intent_id,
+      payment_status: paymentIntent.status,
+      booking_data: duffelResponse.data,
+      message: 'Payment processed and flight booked successfully'
+    });
+    
+  } catch (error) {
+    console.error('❌ Payment confirmation or booking failed:', error);
+    
+    // If Duffel booking failed but payment succeeded, we need to handle this
+    if (error.response?.data) {
+      console.error('❌ Duffel booking error details:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to process booking after payment',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Get payment details
+app.get('/api/payment-status/:payment_intent_id', async (req, res) => {
+  try {
+    const { payment_intent_id } = req.params;
+    const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    
+    res.json({
+      success: true,
+      payment_status: paymentIntent.status,
+      amount: paymentIntent.amount / 100,
+      currency: paymentIntent.currency.toUpperCase(),
+      metadata: paymentIntent.metadata
+    });
+    
+  } catch (error) {
+    console.error('Payment status check error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to check payment status',
+      details: error.message 
+    });
+  }
+});
+
+// Bookings API endpoints
+app.get('/v1/bookings', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Missing or invalid authorization token'
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const userEmail = getUserEmailFromToken(token); // You'll need to implement this
+
+    // For now, we'll simulate fetching bookings from a database
+    // In a real application, you would fetch from your database based on userEmail
+    const mockBookings = await getBookingsForUser(userEmail);
+
+    res.json({
+      success: true,
+      data: mockBookings
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch bookings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bookings',
+      details: error.message
+    });
+  }
+});
+
+// Get specific booking details
+app.get('/v1/bookings/:bookingId', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Missing or invalid authorization token'
+      });
+    }
+
+    const { bookingId } = req.params;
+    const token = authHeader.split(' ')[1];
+    const userEmail = getUserEmailFromToken(token);
+
+    // Fetch specific booking details
+    const booking = await getBookingById(bookingId, userEmail);
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        error: 'Booking not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: booking
+    });
+
+  } catch (error) {
+    console.error('Failed to fetch booking details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch booking details',
+      details: error.message
+    });
+  }
+});
+
+// Cancel booking
+app.delete('/v1/bookings/:bookingId/cancel', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Missing or invalid authorization token'
+      });
+    }
+
+    const { bookingId } = req.params;
+    const token = authHeader.split(' ')[1];
+    const userEmail = getUserEmailFromToken(token);
+
+    // In a real app, you would cancel with Duffel API
+    // For now, we'll just update the local booking status
+    const result = await cancelBooking(bookingId, userEmail);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || 'Failed to cancel booking'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Booking cancelled successfully'
+    });
+
+  } catch (error) {
+    console.error('Failed to cancel booking:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to cancel booking',
+      details: error.message
+    });
+  }
+});
+
+// Download ticket
+app.get('/v1/bookings/:bookingId/ticket', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Missing or invalid authorization token'
+      });
+    }
+
+    const { bookingId } = req.params;
+    const token = authHeader.split(' ')[1];
+    const userEmail = getUserEmailFromToken(token);
+
+    // In a real app, you would generate or fetch the ticket PDF
+    // For now, we'll return a simple response
+    res.json({
+      success: true,
+      message: 'Ticket download functionality will be implemented with PDF generation'
+    });
+
+  } catch (error) {
+    console.error('Failed to generate ticket:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate ticket',
+      details: error.message
+    });
+  }
+});
+
+// Helper functions for booking management
+function getUserEmailFromToken(token) {
+  // In a real app, you would decode the JWT token to get user info
+  // For now, we'll return a mock email
+  return 'user@example.com';
+}
+
+async function getBookingsForUser(userEmail) {
+  // In a real app, this would fetch from your database
+  // For now, return mock data
+  return [
+    {
+      id: 'booking_001',
+      booking_reference: 'ABC123',
+      status: 'confirmed',
+      departure_city: 'New York',
+      arrival_city: 'London',
+      departure_date: '2024-02-15',
+      departure_time: '14:30',
+      arrival_date: '2024-02-16',
+      arrival_time: '02:45',
+      departure_airport: 'JFK',
+      arrival_airport: 'LHR',
+      airline: 'British Airways',
+      flight_number: 'BA115',
+      duration: '7h 15m',
+      total_amount: 850.00,
+      currency: 'USD',
+      passengers: [
+        {
+          first_name: 'John',
+          last_name: 'Doe',
+          type: 'adult',
+          seat_number: '12A'
+        }
+      ],
+      created_at: '2024-01-20T10:30:00Z'
+    },
+    {
+      id: 'booking_002',
+      booking_reference: 'XYZ789',
+      status: 'pending',
+      departure_city: 'Los Angeles',
+      arrival_city: 'Tokyo',
+      departure_date: '2024-03-10',
+      departure_time: '11:20',
+      arrival_date: '2024-03-11',
+      arrival_time: '16:35',
+      departure_airport: 'LAX',
+      arrival_airport: 'NRT',
+      airline: 'All Nippon Airways',
+      flight_number: 'NH175',
+      duration: '11h 15m',
+      total_amount: 1250.00,
+      currency: 'USD',
+      passengers: [
+        {
+          first_name: 'Jane',
+          last_name: 'Smith',
+          type: 'adult',
+          seat_number: '8C'
+        }
+      ],
+      created_at: '2024-01-25T15:45:00Z'
+    }
+  ];
+}
+
+async function getBookingById(bookingId, userEmail) {
+  const bookings = await getBookingsForUser(userEmail);
+  return bookings.find(booking => booking.id === bookingId) || null;
+}
+
+async function cancelBooking(bookingId, userEmail) {
+  // In a real app, you would:
+  // 1. Check if booking exists and belongs to user
+  // 2. Check if booking is cancellable
+  // 3. Call Duffel API to cancel the order
+  // 4. Update booking status in database
+  
+  const booking = await getBookingById(bookingId, userEmail);
+  if (!booking) {
+    return { success: false, error: 'Booking not found' };
+  }
+
+  if (booking.status !== 'confirmed') {
+    return { success: false, error: 'Only confirmed bookings can be cancelled' };
+  }
+
+  // Mock cancellation logic
+  return { success: true };
+}
+
 // Config endpoint for frontend
 app.get('/api/config', (req, res) => {
   res.json({
     apiBaseUrl: process.env.API_BASE_URL || 'https://api.tripzip.ai',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    stripe_publishable_key: STRIPE_PUBLISHABLE_KEY
   });
 });
 
-// Health check
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV,
+    version: '1.0.1'
   });
 });
 

@@ -1030,7 +1030,7 @@ function generatePassengerForm(type, index, number) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
-                    <input type="date" id="dob_${index}" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+                    <input type="date" id="dob_${index}" class="w-full border border-gray-300 rounded-lg px-3 py-2" required onchange="updatePassengerType(${index})">
                 </div>
                 ${isAdult ? `
                 <div>
@@ -1061,6 +1061,47 @@ function generatePassengerForm(type, index, number) {
     `;
 }
 
+// Function to calculate passenger type based on date of birth
+function calculatePassengerType(dateOfBirth) {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    // Adjust age if birthday hasn't occurred this year
+    const actualAge = (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) 
+        ? age - 1 
+        : age;
+    
+    if (actualAge >= 12) {
+        return 'adult';
+    } else if (actualAge >= 2) {
+        return 'child';
+    } else {
+        return 'infant_without_seat';
+    }
+}
+
+// Function to validate passenger type matches date of birth
+function validatePassengerType(selectedType, dateOfBirth) {
+    const calculatedType = calculatePassengerType(dateOfBirth);
+    return selectedType === calculatedType;
+}
+
+// Function to automatically update passenger type based on date of birth
+function updatePassengerType(index) {
+    const dobInput = document.getElementById(`dob_${index}`);
+    const typeSelect = document.getElementById(`type_${index}`);
+    
+    if (dobInput.value && typeSelect) {
+        const calculatedType = calculatePassengerType(dobInput.value);
+        typeSelect.value = calculatedType;
+        
+        // Trigger any change events if needed
+        typeSelect.dispatchEvent(new Event('change'));
+    }
+}
+
 async function processBooking() {
     if (!selectedOffer) return;
     
@@ -1083,6 +1124,19 @@ async function processBooking() {
         
         if (!title || !gender || !firstName || !lastName || !dob) {
             alert(`Please fill in all required fields for passenger ${i + 1}`);
+            return;
+        }
+        
+        // Validate passenger type matches date of birth
+        if (!validatePassengerType(type, dob)) {
+            const calculatedType = calculatePassengerType(dob);
+            const typeLabels = {
+                'adult': 'Adult (12+ years)',
+                'child': 'Child (2-11 years)', 
+                'infant_without_seat': 'Infant (0-1 years)'
+            };
+            
+            alert(`Passenger ${i + 1}: The selected type "${typeLabels[type]}" doesn't match the date of birth. Based on the birth date, this passenger should be: "${typeLabels[calculatedType]}". Please correct the passenger type.`);
             return;
         }
         
@@ -1125,32 +1179,215 @@ async function processBooking() {
         passengers.push(passenger);
     }
     
+    // Store booking data for payment processing
     const bookingData = {
         offer_id: selectedOffer.id,
-        passenger_count: totalPassengers,
         passengers: passengers,
         total_amount: selectedOffer.total_amount,
-        total_currency: selectedOffer.total_currency
+        total_currency: selectedOffer.total_currency,
+        flightDetails: {
+            route: `${selectedOffer.slices[0].segments[0].origin.iata_code} → ${selectedOffer.slices[0].segments[0].destination.iata_code}`,
+            airline: selectedOffer.slices[0].segments[0].marketing_carrier?.name || 'Unknown',
+            departure: selectedOffer.slices[0].segments[0].departing_at
+        }
     };
     
+    // Store booking data in localStorage for payment process
+    localStorage.setItem('pending_booking_data', JSON.stringify(bookingData));
+    
     try {
-        console.log('📤 Sending booking request:', bookingData);
+        console.log('� Proceeding to payment gateway...');
         
-        const response = await axios.post('/api/book-flight', bookingData);
+        // Redirect to payment page or open Stripe payment modal
+        await initiateStripePayment(bookingData);
         
-        console.log('✅ Booking response:', response.data);
-        
-        // Duffel API returns { data: { ...orderData } }
-        if (response.data && response.data.data) {
-            showBookingConfirmation(response.data.data);
-            closeBookingModal();
-        } else {
-            alert('Booking failed: ' + (response.data.error || 'Unknown error'));
-        }
     } catch (error) {
-        console.error('❌ Booking error:', error);
-        const errorMsg = error.response?.data?.details?.errors?.[0]?.message || error.response?.data?.error || error.message || 'Unknown error';
-        alert('Booking failed: ' + errorMsg);
+        console.error('❌ Payment initiation error:', error);
+        const errorMsg = error.response?.data?.error || error.message || 'Payment initiation failed';
+        alert('Payment failed: ' + errorMsg);
+    }
+}
+
+// Initialize Stripe payment process
+async function initiateStripePayment(bookingData) {
+    try {
+        console.log('🏦 Creating payment intent...');
+        
+        // Create payment intent
+        const response = await axios.post('/api/create-payment-intent', {
+            offer_id: bookingData.offer_id,
+            amount: parseFloat(bookingData.total_amount),
+            currency: bookingData.total_currency,
+            passengers: bookingData.passengers,
+            flightDetails: bookingData.flightDetails
+        });
+        
+        if (response.data.success) {
+            const { client_secret, payment_intent_id } = response.data;
+            
+            // Store payment intent ID for later use
+            localStorage.setItem('payment_intent_id', payment_intent_id);
+            
+            // Close booking modal and show payment modal
+            closeBookingModal();
+            
+            // Show Stripe payment modal
+            await showStripePaymentModal(client_secret, bookingData);
+            
+        } else {
+            throw new Error(response.data.error || 'Failed to create payment intent');
+        }
+        
+    } catch (error) {
+        console.error('Payment intent creation failed:', error);
+        alert('Failed to initialize payment: ' + (error.response?.data?.error || error.message));
+    }
+}
+
+// Show Stripe payment modal
+async function showStripePaymentModal(clientSecret, bookingData) {
+    // Create payment modal HTML with proper scrolling
+    const paymentModalHTML = `
+        <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Modal Header -->
+                <div class="p-6 border-b border-gray-200 flex-shrink-0">
+                    <div class="text-center">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Complete Payment</h3>
+                        <p class="text-gray-600">Total Amount: ${bookingData.total_currency} ${parseFloat(bookingData.total_amount).toLocaleString()}</p>
+                        <p class="text-sm text-gray-500">${bookingData.flightDetails.route}</p>
+                    </div>
+                </div>
+                
+                <!-- Modal Body - Scrollable -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div id="payment-element" class="mb-6">
+                        <!-- Stripe Elements will create form elements here -->
+                    </div>
+                    
+                    <div id="payment-messages" class="mb-4 text-sm text-center"></div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="p-6 border-t border-gray-200 flex-shrink-0">
+                    <div class="flex space-x-3">
+                        <button id="cancelPaymentBtn" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button id="submitPaymentBtn" class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50">
+                            <span id="paymentBtnText">Pay Now</span>
+                            <i id="paymentSpinner" class="fas fa-spinner fa-spin hidden ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', paymentModalHTML);
+    
+    // Get Stripe publishable key and initialize
+    const configResponse = await fetch('/api/config');
+    const config = await configResponse.json();
+    
+    // Initialize Stripe
+    const stripe = Stripe(config.stripe_publishable_key);
+    const elements = stripe.elements({ clientSecret });
+    const paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+    
+    // Handle form submission
+    document.getElementById('submitPaymentBtn').addEventListener('click', async () => {
+        await handlePaymentSubmission(stripe, elements, bookingData);
+    });
+    
+    // Handle cancel
+    document.getElementById('cancelPaymentBtn').addEventListener('click', () => {
+        document.getElementById('paymentModal').remove();
+    });
+}
+
+// Handle payment submission
+async function handlePaymentSubmission(stripe, elements, bookingData) {
+    const submitBtn = document.getElementById('submitPaymentBtn');
+    const btnText = document.getElementById('paymentBtnText');
+    const spinner = document.getElementById('paymentSpinner');
+    const messages = document.getElementById('payment-messages');
+    
+    // Show loading
+    submitBtn.disabled = true;
+    btnText.classList.add('hidden');
+    spinner.classList.remove('hidden');
+    
+    try {
+        const { error, paymentIntent } = await stripe.confirmPayment({
+            elements,
+            redirect: 'if_required'
+        });
+        
+        if (error) {
+            // Payment failed
+            messages.innerHTML = `<div class="text-red-600">${error.message}</div>`;
+            console.error('Payment failed:', error);
+        } else if (paymentIntent.status === 'succeeded') {
+            // Payment successful, now book the flight
+            console.log('💳 Payment successful, processing booking...');
+            
+            messages.innerHTML = `<div class="text-green-600">Payment successful! Processing your booking...</div>`;
+            
+            // Confirm payment and book flight
+            await confirmPaymentAndBook(paymentIntent.id, bookingData);
+        }
+        
+    } catch (error) {
+        console.error('Payment processing error:', error);
+        messages.innerHTML = `<div class="text-red-600">Payment processing failed: ${error.message}</div>`;
+    } finally {
+        // Hide loading
+        submitBtn.disabled = false;
+        btnText.classList.remove('hidden');
+        spinner.classList.add('hidden');
+    }
+}
+
+// Confirm payment and create booking
+async function confirmPaymentAndBook(paymentIntentId, bookingData) {
+    try {
+        const response = await axios.post('/api/confirm-payment-and-book', {
+            payment_intent_id: paymentIntentId,
+            offer_id: bookingData.offer_id,
+            passengers: bookingData.passengers,
+            total_amount: bookingData.total_amount,
+            total_currency: bookingData.total_currency
+        });
+        
+        if (response.data.success) {
+            console.log('✅ Booking completed successfully!');
+            
+            // Store booking details
+            localStorage.setItem('latest_booking', JSON.stringify(response.data.booking_data));
+            
+            // Clean up
+            localStorage.removeItem('pending_booking_data');
+            localStorage.removeItem('payment_intent_id');
+            document.getElementById('paymentModal').remove();
+            
+            // Show success message and redirect to dashboard
+            alert('🎉 Payment successful! Your flight has been booked. Redirecting to dashboard...');
+            
+            setTimeout(() => {
+                window.location.href = '/dashboard/bookings';
+            }, 2000);
+            
+        } else {
+            throw new Error(response.data.error || 'Booking failed after payment');
+        }
+        
+    } catch (error) {
+        console.error('❌ Booking after payment failed:', error);
+        document.getElementById('payment-messages').innerHTML = 
+            `<div class="text-red-600">Booking failed: ${error.response?.data?.error || error.message}. Please contact support.</div>`;
     }
 }
 

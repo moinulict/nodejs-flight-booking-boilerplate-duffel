@@ -410,10 +410,6 @@ class TravellersManager {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div class="flex items-center space-x-2">
-                        <button onclick="travellersManager.viewTraveller('${traveller.id}')" 
-                                class="text-blue-600 hover:text-blue-900 transition-colors" title="View">
-                            <i class="fas fa-eye"></i>
-                        </button>
                         <button onclick="travellersManager.editTraveller('${traveller.id}')" 
                                 class="text-orange-600 hover:text-orange-900 transition-colors" title="Edit">
                             <i class="fas fa-edit"></i>
