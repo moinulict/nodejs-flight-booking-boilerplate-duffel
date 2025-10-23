@@ -63,15 +63,17 @@
     <div id="navigation"></div>
 
     <!-- Main Content -->
-    <div class="dashboard-container flex min-h-screen">
-        <!-- Dashboard Sidebar -->
-        <aside class="dashboard-sidebar w-64 bg-white shadow-sm border-r border-gray-200">
-            <!-- Sidebar will be injected by sidebar.js -->
-        </aside>
-        
-        <!-- Main Content Area -->
-        <main class="dashboard-main flex-1 p-6 overflow-auto">
-            <div class="max-w-6xl mx-auto pt-4">
+    <div class="dashboard-container">
+        <div class="container mx-auto px-4 lg:px-8">
+            <div class="flex min-h-screen">
+                <!-- Dashboard Sidebar -->
+                <aside class="w-64 bg-white shadow-sm border border-gray-200">
+                    <!-- Sidebar will be injected by sidebar.js -->
+                </aside>
+                
+                <!-- Main Content Area -->
+                <main class="flex-1 px-6 overflow-auto">
+                    <div>
             
                 <!-- Dashboard Content -->
                 <!-- Profile Section -->
@@ -300,8 +302,9 @@
                         <span id="saveText">Save Changes</span>
                         <i id="saveSpinner" class="fas fa-spinner fa-spin hidden"></i>
                     </button>
-                </div>
-            </form>
+                    </div>
+                </main>
+            </div>
         </div>
     </div>
 

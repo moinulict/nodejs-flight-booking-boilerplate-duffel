@@ -47,7 +47,7 @@ class DashboardSidebar {
         `;
         
         // Insert sidebar into the sidebar container
-        const sidebarContainer = document.querySelector('.dashboard-sidebar');
+        const sidebarContainer = document.querySelector('aside');
         if (sidebarContainer) {
             sidebarContainer.innerHTML = sidebarHTML;
         }

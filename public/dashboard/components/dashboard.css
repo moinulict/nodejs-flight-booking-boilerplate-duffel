@@ -74,33 +74,63 @@
 
 /* Dashboard Layout */
 .dashboard-container {
-    margin-top: 85px !important; /* Account for fixed navigation header + small buffer */
+    margin: 40px 0px; /* Account for fixed navigation header + small buffer */
     min-height: calc(100vh - 85px);
 }
 
-/* Ensure body has proper top padding for fixed header */
-body.dashboard-page {
-    padding-top: 0;
+/* Dashboard Main Content Container - Match header container */
+.dashboard-main-container {
+    max-width: 1280px; /* Matches container max-width */
+    margin: 0 auto;
+    padding-left: 1rem; /* px-4 */
+    padding-right: 1rem;
 }
 
-/* Fix for dashboard content spacing */
+@media (min-width: 1024px) {
+    .dashboard-main-container {
+        padding-left: 2rem; /* lg:px-8 */
+        padding-right: 2rem;
+    }
+}
+
+/* Full width dashboard container */
+.dashboard-main-wrapper {
+    display: flex;
+    min-height: calc(100vh - 85px);
+    width: 100%;
+}
+
+/* Sidebar container with consistent spacing */
+.dashboard-sidebar-container {
+    width: 16rem; /* w-64 = 256px = 16rem */
+    background: white;
+    border-right: 1px solid #e5e7eb;
+    min-height: calc(100vh - 85px);
+}
+
+/* Main content area with proper container */
+.dashboard-main-content {
+    flex: 1;
+    padding: 1.5rem 0; /* py-6 */
+    overflow: auto;
+}
+
+/* Remove conflicting old styles */
 .dashboard-main {
+    padding: 0; /* Reset old padding */
+}
+
+/* Ensure proper spacing for dashboard content */
+.dashboard-content-wrapper {
     padding-top: 1rem;
     padding-bottom: 2rem;
 }
 
-/* Ensure content is not cropped */
-.dashboard-main .max-w-6xl,
-.dashboard-main .max-w-4xl,
-.dashboard-main .max-w-2xl {
-    padding-top: 1rem;
-}
-
 /* Sidebar styling */
-.dashboard-sidebar {
+.dashboard-sidebar-container {
     background-color: #ffffff;
     border-right: 1px solid #e5e7eb;
-    min-height: calc(100vh - 80px);
+    min-height: calc(100vh - 85px);
 }
 
 .sidebar-link {
@@ -141,21 +171,27 @@ body.dashboard-page {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .dashboard-sidebar {
+    .dashboard-sidebar-container {
         display: none;
     }
     
-    .dashboard-sidebar.mobile-open {
+    .dashboard-sidebar-container.mobile-open {
         display: block;
         position: fixed;
-        top: 0;
+        top: 85px; /* Account for header height */
         left: 0;
-        height: 100vh;
+        height: calc(100vh - 85px);
         z-index: 50;
+        width: 16rem;
     }
     
-    .dashboard-main {
+    .dashboard-main-content {
         width: 100%;
+    }
+    
+    .dashboard-main-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 }
 

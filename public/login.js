@@ -1,70 +1,90 @@
 // Login functionality
 class LoginManager {
     constructor() {
-        this.baseUrl = null; // Will be loaded from server config
+        this.baseUrl = null;
+        this.axiosInstance = null;
         this.init();
     }
-    
+
     async init() {
         await this.loadConfig();
+        this.setupAxios();
         this.setupEventListeners();
     }
-    
+
     async loadConfig() {
         try {
             const response = await fetch('/api/config');
             const config = await response.json();
             this.baseUrl = config.apiBaseUrl;
-            console.log('Loaded API Base URL:', this.baseUrl);
         } catch (error) {
             console.error('Failed to load config, using fallback:', error);
-            this.baseUrl = 'https://api.tripzip.ai'; // Fallback
+            this.baseUrl = 'https://api.tripzip.ai';
         }
     }
-    
-    setupEventListeners() {
-        // Login form submission
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.login();
-        });
-        
-        // Password toggle
-        document.getElementById('togglePassword').addEventListener('click', () => {
-            this.togglePasswordVisibility();
-        });
-        
-        // Forgot password button
-        document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
-            window.location.href = '/forgot-password';
+
+    setupAxios() {
+        this.axiosInstance = axios.create({
+            baseURL: 'http://localhost:3000',
+            timeout: 10000,
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
     }
-    
+
+    setupEventListeners() {
+        // Login form submission
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.login();
+                return false;
+            });
+        }
+
+        // Password toggle
+        const togglePassword = document.getElementById('togglePassword');
+        if (togglePassword) {
+            togglePassword.addEventListener('click', () => {
+                this.togglePasswordVisibility();
+            });
+        }
+
+        // Forgot password button
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+        if (forgotPasswordBtn) {
+            forgotPasswordBtn.addEventListener('click', () => {
+                window.location.href = '/forgot-password';
+            });
+        }
+    }
+
     async login() {
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
-        
+
         if (!email || !password) {
             this.showError('loginError', 'Please enter both email and password');
             return;
         }
-        
-        if (!this.baseUrl) {
+
+        if (!this.axiosInstance) {
             this.showError('loginError', 'Configuration not loaded. Please try again.');
             return;
         }
-        
+
         this.showLoading('loginBtn', 'loginText', 'Signing In...');
         this.hideError('loginError');
-        
+
         try {
-            const response = await axios.post(`${this.baseUrl}/v1/auth/login`, {
+            const response = await this.axiosInstance.post('/api/login', {
                 email: email,
                 password: password
             });
-            
-            console.log('Login Response:', response.data);
-            
+
             if (response.data.status === 'true' || response.data.status === true) {
                 // Store user data and tokens
                 const { access_token, refresh_token, user } = response.data.data;
@@ -75,26 +95,36 @@ class LoginManager {
                 
                 this.showSuccess('Login successful! Redirecting...');
                 
-                // Redirect to dashboard after 1 second
+                // Redirect to dashboard
                 setTimeout(() => {
                     window.location.href = '/dashboard';
                 }, 1000);
+                
             } else {
                 throw new Error(response.data.message || 'Login failed');
             }
         } catch (error) {
-            console.error('Login Error:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please check your credentials.';
+            console.error('Login error:', error);
+            
+            let errorMessage;
+            if (error.response) {
+                errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+            } else if (error.request) {
+                errorMessage = 'Network error: Unable to connect to server';
+            } else {
+                errorMessage = error.message || 'Login failed. Please try again.';
+            }
+            
             this.showError('loginError', errorMessage);
         } finally {
             this.hideLoading('loginBtn', 'loginText', 'Sign In');
         }
     }
-    
+
     togglePasswordVisibility() {
         const passwordField = document.getElementById('password');
         const passwordIcon = document.getElementById('passwordIcon');
-        
+
         if (passwordField.type === 'password') {
             passwordField.type = 'text';
             passwordIcon.className = 'fas fa-eye-slash';
@@ -103,32 +133,32 @@ class LoginManager {
             passwordIcon.className = 'fas fa-eye';
         }
     }
-    
+
     // Utility Methods
     showLoading(buttonId, textElementId, loadingText) {
         const button = document.getElementById(buttonId);
         const textElement = document.getElementById(textElementId);
-        
+
         button.disabled = true;
         button.classList.add('opacity-75', 'cursor-not-allowed');
-        
+
         if (textElement) {
             textElement.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${loadingText}`;
         }
     }
-    
+
     hideLoading(buttonId, textElementId, defaultText) {
         const button = document.getElementById(buttonId);
         const textElement = document.getElementById(textElementId);
-        
+
         button.disabled = false;
         button.classList.remove('opacity-75', 'cursor-not-allowed');
-        
+
         if (textElement) {
             textElement.textContent = defaultText;
         }
     }
-    
+
     showError(elementId, message) {
         const errorElement = document.getElementById(elementId);
         if (errorElement) {
@@ -136,14 +166,14 @@ class LoginManager {
             errorElement.classList.remove('hidden');
         }
     }
-    
+
     hideError(elementId) {
         const errorElement = document.getElementById(elementId);
         if (errorElement) {
             errorElement.classList.add('hidden');
         }
     }
-    
+
     showSuccess(message) {
         // Create a toast notification
         const toast = document.createElement('div');
@@ -154,9 +184,9 @@ class LoginManager {
                 <span>${message}</span>
             </div>
         `;
-        
+
         document.body.appendChild(toast);
-        
+
         // Auto remove after 5 seconds
         setTimeout(() => {
             if (toast.parentNode) {

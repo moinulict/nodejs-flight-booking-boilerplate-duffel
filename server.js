@@ -44,6 +44,36 @@ const duffelAPI = axios.create({
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
 
+// External API configuration
+const EXTERNAL_API_BASE = process.env.API_BASE_URL || 'https://api.tripzip.ai';
+
+// Proxy endpoint for login to avoid CORS issues
+app.post('/api/login', async (req, res) => {
+  try {
+    console.log('🔐 Proxying login request:', req.body.email);
+    
+    const response = await axios.post(`${EXTERNAL_API_BASE}/v1/auth/login`, {
+      email: req.body.email,
+      password: req.body.password
+    });
+    
+    console.log('✅ Login successful:', response.data.data?.user?.email);
+    res.json(response.data);
+    
+  } catch (error) {
+    console.error('❌ Login proxy error:', error.response?.data || error.message);
+    
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({
+        status: 'false',
+        message: 'Network error: Unable to connect to authentication service'
+      });
+    }
+  }
+});
+
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

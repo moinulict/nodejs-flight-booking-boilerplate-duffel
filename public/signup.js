@@ -1,7 +1,8 @@
 // Signup functionality with OTP verification
 class SignupManager {
     constructor() {
-        this.baseUrl = null; // Will be loaded from server config
+        this.externalApiBaseUrl = null;
+        this.internalApiBaseUrl = null;
         this.currentStep = 1;
         this.otpId = null;
         this.userEmail = '';
@@ -96,11 +97,16 @@ class SignupManager {
         try {
             const response = await fetch('/api/config');
             const config = await response.json();
-            this.baseUrl = config.apiBaseUrl;
-            console.log('Loaded API Base URL:', this.baseUrl);
+            this.externalApiBaseUrl = config.externalApiBaseUrl;
+            this.internalApiBaseUrl = config.internalApiBaseUrl;
+            console.log('Loaded API URLs:', {
+                external: this.externalApiBaseUrl,
+                internal: this.internalApiBaseUrl
+            });
         } catch (error) {
             console.error('Failed to load config, using fallback:', error);
-            this.baseUrl = 'https://api.tripzip.ai'; // Fallback
+            this.externalApiBaseUrl = 'https://api.tripzip.ai';
+            this.internalApiBaseUrl = 'http://localhost:3000';
         }
     }
     
@@ -224,7 +230,7 @@ class SignupManager {
             return;
         }
         
-        if (!this.baseUrl) {
+        if (!this.externalApiBaseUrl) {
             this.showError('emailError', 'Configuration not loaded. Please try again.');
             return;
         }
@@ -233,7 +239,7 @@ class SignupManager {
         this.hideError('emailError');
         
         try {
-            const response = await axios.post(`${this.baseUrl}/v1/auth/send-otp`, {
+            const response = await axios.post(`${this.externalApiBaseUrl}/v1/auth/send-otp`, {
                 email: email,
                 otp_type: 'registration'
             });
@@ -265,7 +271,7 @@ class SignupManager {
     async resendOTP() {
         if (!this.userEmail) return;
         
-        if (!this.baseUrl) {
+        if (!this.externalApiBaseUrl) {
             this.showError('otpError', 'Configuration not loaded. Please try again.');
             return;
         }
@@ -273,7 +279,7 @@ class SignupManager {
         this.showLoading('resendOtpBtn', null, 'Resending...');
         
         try {
-            const response = await axios.post(`${this.baseUrl}/v1/auth/resend-otp`, {
+            const response = await axios.post(`${this.externalApiBaseUrl}/v1/auth/resend-otp`, {
                 email: this.userEmail,
                 otp_type: 'registration'
             });
@@ -312,7 +318,7 @@ class SignupManager {
             return;
         }
         
-        if (!this.baseUrl) {
+        if (!this.externalApiBaseUrl) {
             this.showError('otpError', 'Configuration not loaded. Please try again.');
             return;
         }
@@ -321,7 +327,7 @@ class SignupManager {
         this.hideError('otpError');
         
         try {
-            const response = await axios.post(`${this.baseUrl}/v1/auth/verify-otp`, {
+            const response = await axios.post(`${this.externalApiBaseUrl}/v1/auth/verify-otp`, {
                 email: this.userEmail,
                 otp_code: otpCode,
                 otp_type: 'registration'
@@ -351,7 +357,7 @@ class SignupManager {
             return;
         }
         
-        if (!this.baseUrl) {
+        if (!this.externalApiBaseUrl) {
             this.showError('registrationError', 'Configuration not loaded. Please try again.');
             return;
         }
@@ -362,7 +368,7 @@ class SignupManager {
         this.hideError('registrationError');
         
         try {
-            const response = await axios.post(`${this.baseUrl}/v1/auth/register-with-otp`, {
+            const response = await axios.post(`${this.externalApiBaseUrl}/v1/auth/register-with-otp`, {
                 email: this.userEmail,
                 password: formData.password,
                 otp_code: this.otpCode,
