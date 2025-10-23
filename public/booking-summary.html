@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Summary - Soft Flight Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Global Country Data -->
+    <script>
+        window.GLOBAL_COUNTRIES = [
+            { code: '+880', name: 'Bangladesh', flag: '🇧🇩', display: '🇧🇩 Bangladesh (+880)' },
+            { code: '+1', name: 'United States', flag: '🇺🇸', display: '🇺🇸 United States (+1)' },
+            { code: '+1', name: 'Canada', flag: '🇨🇦', display: '🇨🇦 Canada (+1)' },
+            { code: '+44', name: 'United Kingdom', flag: '🇬🇧', display: '🇬🇧 United Kingdom (+44)' },
+            { code: '+33', name: 'France', flag: '🇫🇷', display: '🇫🇷 France (+33)' },
+            { code: '+49', name: 'Germany', flag: '🇩🇪', display: '🇩🇪 Germany (+49)' },
+            { code: '+39', name: 'Italy', flag: '🇮🇹', display: '🇮🇹 Italy (+39)' },
+            { code: '+34', name: 'Spain', flag: '🇪🇸', display: '🇪🇸 Spain (+34)' },
+            { code: '+86', name: 'China', flag: '🇨🇳', display: '🇨🇳 China (+86)' },
+            { code: '+81', name: 'Japan', flag: '🇯🇵', display: '🇯🇵 Japan (+81)' },
+            { code: '+82', name: 'South Korea', flag: '🇰🇷', display: '🇰🇷 South Korea (+82)' },
+            { code: '+91', name: 'India', flag: '🇮🇳', display: '🇮🇳 India (+91)' },
+            { code: '+61', name: 'Australia', flag: '🇦🇺', display: '🇦🇺 Australia (+61)' },
+            { code: '+64', name: 'New Zealand', flag: '🇳🇿', display: '🇳🇿 New Zealand (+64)' },
+            { code: '+92', name: 'Pakistan', flag: '🇵🇰', display: '🇵🇰 Pakistan (+92)' },
+            { code: '+52', name: 'Mexico', flag: '🇲🇽', display: '🇲🇽 Mexico (+52)' },
+            { code: '+55', name: 'Brazil', flag: '🇧🇷', display: '🇧🇷 Brazil (+55)' },
+            { code: '+7', name: 'Russia', flag: '🇷🇺', display: '🇷🇺 Russia (+7)' },
+            { code: '+27', name: 'South Africa', flag: '🇿🇦', display: '🇿🇦 South Africa (+27)' },
+            { code: '+971', name: 'UAE', flag: '🇦🇪', display: '🇦🇪 UAE (+971)' },
+            { code: '+966', name: 'Saudi Arabia', flag: '🇸🇦', display: '🇸🇦 Saudi Arabia (+966)' },
+            { code: '+65', name: 'Singapore', flag: '🇸🇬', display: '🇸🇬 Singapore (+65)' },
+            { code: '+60', name: 'Malaysia', flag: '🇲🇾', display: '🇲🇾 Malaysia (+60)' },
+            { code: '+66', name: 'Thailand', flag: '🇹🇭', display: '🇹🇭 Thailand (+66)' },
+            { code: '+84', name: 'Vietnam', flag: '🇻🇳', display: '🇻🇳 Vietnam (+84)' },
+            { code: '+63', name: 'Philippines', flag: '🇵🇭', display: '🇵🇭 Philippines (+63)' },
+            { code: '+62', name: 'Indonesia', flag: '🇮🇩', display: '🇮🇩 Indonesia (+62)' },
+            { code: '+90', name: 'Turkey', flag: '🇹🇷', display: '🇹🇷 Turkey (+90)' },
+            { code: '+98', name: 'Iran', flag: '🇮🇷', display: '🇮🇷 Iran (+98)' },
+            { code: '+20', name: 'Egypt', flag: '🇪🇬', display: '🇪🇬 Egypt (+20)' },
+            { code: '+234', name: 'Nigeria', flag: '🇳🇬', display: '🇳🇬 Nigeria (+234)' },
+            { code: '+254', name: 'Kenya', flag: '🇰🇪', display: '🇰🇪 Kenya (+254)' },
+            { code: '+233', name: 'Ghana', flag: '🇬🇭', display: '🇬🇭 Ghana (+233)' },
+            { code: '+212', name: 'Morocco', flag: '🇲🇦', display: '🇲🇦 Morocco (+212)' },
+            { code: '+213', name: 'Algeria', flag: '🇩🇿', display: '🇩🇿 Algeria (+213)' },
+            { code: '+216', name: 'Tunisia', flag: '🇹🇳', display: '🇹🇳 Tunisia (+216)' },
+            { code: '+218', name: 'Libya', flag: '🇱🇾', display: '🇱🇾 Libya (+218)' },
+            { code: '+251', name: 'Ethiopia', flag: '🇪🇹', display: '🇪🇹 Ethiopia (+251)' },
+            { code: '+256', name: 'Uganda', flag: '🇺🇬', display: '🇺🇬 Uganda (+256)' },
+            { code: '+255', name: 'Tanzania', flag: '🇹🇿', display: '🇹🇿 Tanzania (+255)' },
+            { code: '+94', name: 'Sri Lanka', flag: '🇱🇰', display: '🇱🇰 Sri Lanka (+94)' },
+            { code: '+95', name: 'Myanmar', flag: '🇲🇲', display: '🇲🇲 Myanmar (+95)' },
+            { code: '+977', name: 'Nepal', flag: '🇳🇵', display: '🇳🇵 Nepal (+977)' },
+            { code: '+975', name: 'Bhutan', flag: '🇧🇹', display: '🇧🇹 Bhutan (+975)' },
+            { code: '+960', name: 'Maldives', flag: '🇲🇻', display: '🇲🇻 Maldives (+960)' },
+            { code: '+93', name: 'Afghanistan', flag: '🇦🇫', display: '🇦🇫 Afghanistan (+93)' },
+            { code: '+380', name: 'Ukraine', flag: '🇺🇦', display: '🇺🇦 Ukraine (+380)' },
+            { code: '+48', name: 'Poland', flag: '🇵🇱', display: '🇵🇱 Poland (+48)' },
+            { code: '+31', name: 'Netherlands', flag: '🇳🇱', display: '🇳🇱 Netherlands (+31)' },
+            { code: '+32', name: 'Belgium', flag: '🇧🇪', display: '🇧🇪 Belgium (+32)' },
+            { code: '+41', name: 'Switzerland', flag: '🇨🇭', display: '🇨🇭 Switzerland (+41)' },
+            { code: '+43', name: 'Austria', flag: '🇦🇹', display: '🇦🇹 Austria (+43)' },
+            { code: '+45', name: 'Denmark', flag: '🇩🇰', display: '🇩🇰 Denmark (+45)' },
+            { code: '+46', name: 'Sweden', flag: '🇸🇪', display: '🇸🇪 Sweden (+46)' },
+            { code: '+47', name: 'Norway', flag: '🇳🇴', display: '🇳🇴 Norway (+47)' },
+            { code: '+358', name: 'Finland', flag: '🇫🇮', display: '🇫🇮 Finland (+358)' },
+            { code: '+353', name: 'Ireland', flag: '🇮🇪', display: '🇮🇪 Ireland (+353)' },
+            { code: '+351', name: 'Portugal', flag: '🇵🇹', display: '🇵🇹 Portugal (+351)' },
+            { code: '+30', name: 'Greece', flag: '🇬🇷', display: '🇬🇷 Greece (+30)' },
+            { code: '+420', name: 'Czech Republic', flag: '🇨🇿', display: '🇨🇿 Czech Republic (+420)' },
+            { code: '+421', name: 'Slovakia', flag: '🇸🇰', display: '🇸🇰 Slovakia (+421)' },
+            { code: '+36', name: 'Hungary', flag: '🇭🇺', display: '🇭🇺 Hungary (+36)' },
+            { code: '+40', name: 'Romania', flag: '🇷🇴', display: '🇷🇴 Romania (+40)' },
+            { code: '+359', name: 'Bulgaria', flag: '🇧🇬', display: '🇧🇬 Bulgaria (+359)' },
+            { code: '+385', name: 'Croatia', flag: '🇭🇷', display: '🇭🇷 Croatia (+385)' },
+            { code: '+386', name: 'Slovenia', flag: '🇸🇮', display: '🇸🇮 Slovenia (+386)' },
+            { code: '+387', name: 'Bosnia and Herzegovina', flag: '🇧🇦', display: '🇧🇦 Bosnia and Herzegovina (+387)' },
+            { code: '+381', name: 'Serbia', flag: '🇷🇸', display: '🇷🇸 Serbia (+381)' },
+            { code: '+382', name: 'Montenegro', flag: '🇲🇪', display: '🇲🇪 Montenegro (+382)' },
+            { code: '+383', name: 'Kosovo', flag: '🇽🇰', display: '🇽🇰 Kosovo (+383)' },
+            { code: '+389', name: 'North Macedonia', flag: '🇲🇰', display: '🇲🇰 North Macedonia (+389)' },
+            { code: '+355', name: 'Albania', flag: '🇦🇱', display: '🇦🇱 Albania (+355)' },
+            { code: '+372', name: 'Estonia', flag: '🇪🇪', display: '🇪🇪 Estonia (+372)' },
+            { code: '+371', name: 'Latvia', flag: '🇱🇻', display: '🇱🇻 Latvia (+371)' },
+            { code: '+370', name: 'Lithuania', flag: '🇱🇹', display: '🇱🇹 Lithuania (+370)' },
+            { code: '+375', name: 'Belarus', flag: '🇧🇾', display: '🇧🇾 Belarus (+375)' },
+            { code: '+373', name: 'Moldova', flag: '🇲🇩', display: '🇲🇩 Moldova (+373)' },
+            { code: '+374', name: 'Armenia', flag: '🇦🇲', display: '🇦🇲 Armenia (+374)' },
+            { code: '+995', name: 'Georgia', flag: '🇬🇪', display: '🇬🇪 Georgia (+995)' },
+            { code: '+994', name: 'Azerbaijan', flag: '🇦🇿', display: '🇦🇿 Azerbaijan (+994)' },
+            { code: '+996', name: 'Kyrgyzstan', flag: '🇰🇬', display: '🇰🇬 Kyrgyzstan (+996)' },
+            { code: '+998', name: 'Uzbekistan', flag: '🇺🇿', display: '🇺🇿 Uzbekistan (+998)' },
+            { code: '+992', name: 'Tajikistan', flag: '🇹🇯', display: '🇹🇯 Tajikistan (+992)' },
+            { code: '+993', name: 'Turkmenistan', flag: '🇹🇲', display: '🇹🇲 Turkmenistan (+993)' },
+            { code: '+7', name: 'Kazakhstan', flag: '🇰🇿', display: '🇰🇿 Kazakhstan (+7)' }
+        ];
+
+        // Helper functions for country data
+        window.getCountryByCode = function(code) {
+            return window.GLOBAL_COUNTRIES.find(country => country.code === code) || window.GLOBAL_COUNTRIES[0];
+        };
+
+        window.getCountryDisplay = function(code) {
+            const country = window.getCountryByCode(code);
+            return `${country.flag} ${country.code}`;
+        };
+
+        window.generateCountryOptions = function() {
+            return window.GLOBAL_COUNTRIES.map(country => 
+                `<div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="${country.code}" data-name="${country.name}">${country.display}</div>`
+            ).join('');
+        };
+    </script>
+    <link rel="stylesheet" href="components/nav.css">
+    <script src="components/nav.js"></script>
+    <style>
+        /* Global Loader Styles */
+        .global-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #f97316;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .section-loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            min-height: 120px;
+        }
+        
+        .section-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- Global Loader -->
+    <div id="global-loader" class="global-loader">
+        <div class="loader-spinner"></div>
+        <div class="mt-4 text-center">
+            <h3 class="text-lg font-semibold text-gray-700">Loading Booking Summary...</h3>
+            <p class="text-sm text-gray-500 mt-2">Please wait while we prepare your booking details</p>
+        </div>
+    </div>
+    
+    <!-- Navigation will be inserted here -->
+    
+    <!-- Header -->
+    <div class="py-8 mt-4">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-3xl font-bold text-gray-800">✈️ Flight Booking Summary</h1>
+            <p class="text-gray-600 mt-2">Please review your booking details before proceeding to payment</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="">
+            
+            <!-- Flight Details Card -->
+            <div class="bg-white rounded-lg shadow-lg mb-6">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        Flight Details
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <!-- Flight Details Loader -->
+                    <div id="flight-details-loader" class="section-loader">
+                        <div class="section-spinner"></div>
+                        <span class="ml-3 text-gray-600">Loading flight details...</span>
+                    </div>
+                    
+                    <div id="flight-details-content" class="space-y-4 hidden">
+                        <!-- Flight details will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passenger Information Card -->
+            <div class="bg-white rounded-lg shadow-lg mb-6">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        Passenger Information
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <!-- Passenger Forms Loader -->
+                    <div id="passenger-forms-loader" class="section-loader">
+                        <div class="section-spinner"></div>
+                        <span class="ml-3 text-gray-600">Loading passenger forms...</span>
+                    </div>
+                    
+                    <div id="passenger-forms-container" class="hidden">
+                        <!-- Passenger forms will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Breakdown Card -->
+            <div class="bg-white rounded-lg shadow-lg mb-6">
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Price Summary
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <!-- Price Details Loader -->
+                    <div id="price-details-loader" class="section-loader">
+                        <div class="section-spinner"></div>
+                        <span class="ml-3 text-gray-600">Loading price summary...</span>
+                    </div>
+                    
+                    <div id="price-details-content" class="hidden">
+                        <!-- Price details will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between">
+                <button id="back-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Back to Edit
+                </button>
+                
+                <button id="proceed-payment-btn" class="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    </svg>
+                    Proceed to Payment
+                    <div id="payment-loading" class="hidden ml-2">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Messages -->
+            <div id="messages" class="mt-6"></div>
+        </div>
+    </div>
+
+    <script>
+        class BookingSummaryManager {
+            constructor() {
+                this.bookingData = null;
+                this.init();
+            }
+
+            init() {
+                // Load booking data from localStorage
+                this.loadBookingData();
+                this.setupEventListeners();
+                this.displaySummary();
+            }
+
+            loadBookingData() {
+                const bookingDataStr = localStorage.getItem('pending_booking_data');
+                if (!bookingDataStr) {
+                    alert('No booking data found. Redirecting to flights page...');
+                    window.location.href = '/flights.html';
+                    return;
+                }
+                this.bookingData = JSON.parse(bookingDataStr);
+                console.log('📋 Loaded booking data for summary:', this.bookingData);
+            }
+
+            setupEventListeners() {
+                // Back button
+                document.getElementById('back-btn').addEventListener('click', () => {
+                    this.goBackToFlightSearch();
+                });
+
+                // Proceed to payment button
+                document.getElementById('proceed-payment-btn').addEventListener('click', () => {
+                    this.proceedToPayment();
+                });
+            }
+
+            goBackToFlightSearch() {
+                // Get the original flight search URL from localStorage or reconstruct from booking data
+                let originalSearchUrl = localStorage.getItem('original_search_url');
+                
+                if (!originalSearchUrl && this.bookingData?.searchData) {
+                    // Reconstruct the search URL from booking data
+                    const searchParams = new URLSearchParams();
+                    
+                    // Basic search parameters
+                    searchParams.set('type', '1'); // One way (default)
+                    searchParams.set('departure_id', this.extractAirportCode(this.bookingData.flightDetails.route, 'origin'));
+                    searchParams.set('arrival_id', this.extractAirportCode(this.bookingData.flightDetails.route, 'destination'));
+                    
+                    // Date parameter from flight details
+                    if (this.bookingData.flightDetails.departure) {
+                        const departureDate = new Date(this.bookingData.flightDetails.departure);
+                        const formattedDate = departureDate.toISOString().split('T')[0];
+                        searchParams.set('outbound_date', formattedDate);
+                    } else {
+                        // Use today's date as fallback
+                        const today = new Date();
+                        const formattedDate = today.toISOString().split('T')[0];
+                        searchParams.set('outbound_date', formattedDate);
+                    }
+                    
+                    // Passenger parameters
+                    const searchData = this.bookingData.searchData;
+                    searchParams.set('adults', searchData.adults || 1);
+                    if (searchData.children && searchData.children > 0) {
+                        searchParams.set('children', searchData.children);
+                    }
+                    if (searchData.infants && searchData.infants > 0) {
+                        searchParams.set('infants', searchData.infants);
+                    }
+                    
+                    // Additional parameters
+                    searchParams.set('travel_class', '1'); // Economy (default)
+                    searchParams.set('fare_type', '1'); // Regular fare (default)
+                    
+                    originalSearchUrl = `/flights.html?${searchParams.toString()}`;
+                }
+                
+                // Fallback to basic flights page if no URL can be constructed
+                const backUrl = originalSearchUrl || '/flights.html';
+                
+                console.log('🔙 Going back to flight search:', backUrl);
+                window.location.href = backUrl;
+            }
+
+            extractAirportCode(route, position) {
+                // Extract airport codes from route like "DAC → CGP"
+                const parts = route.split(' → ');
+                if (position === 'origin' && parts.length > 0) {
+                    return parts[0].trim();
+                } else if (position === 'destination' && parts.length > 1) {
+                    return parts[1].trim();
+                }
+                return '';
+            }
+
+            displaySummary() {
+                this.displayFlightDetails();
+                this.displayPassengerForms();
+                this.displayPriceDetails();
+            }
+
+            displayFlightDetails() {
+                const { flightDetails } = this.bookingData;
+                const container = document.getElementById('flight-details-content');
+                
+                // Minimal loading delay for UX
+                setTimeout(() => {
+                
+                const departureDate = new Date(flightDetails.departure).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                const departureTime = new Date(flightDetails.departure).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                container.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <div class="flex">
+                                <span class="text-gray-600">Route:</span>
+                                <span class="font-semibold text-lg ml-2">${flightDetails.route}</span>
+                            </div>
+                            <div class="flex">
+                                <span class="text-gray-600">Airline:</span>
+                                <span class="font-medium ml-2">${flightDetails.airline}</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex">
+                                <span class="text-gray-600">Departure Date:</span>
+                                <span class="font-medium ml-2">${departureDate}</span>
+                            </div>
+                            <div class="flex">
+                                <span class="text-gray-600">Departure Time:</span>
+                                <span class="font-medium ml-2">${departureTime}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Show flight details section after content is loaded
+                LoaderManager.showSection('flight-details');
+                
+                }, 100); // Reduced delay for faster loading
+            }
+
+            displayPassengerForms() {
+                // CRITICAL: Use passengers from Duffel offer (with correct IDs) or initialize if missing
+                const searchData = this.bookingData?.searchData;
+                
+                // Check if we have offer_request_passengers with Duffel IDs
+                if (this.bookingData.offer_request_passengers && this.bookingData.offer_request_passengers.length > 0) {
+                    console.log('✅ Using passengers from Duffel offer with correct IDs:', this.bookingData.offer_request_passengers);
+                    
+                    // Initialize passengers with Duffel IDs and add required booking fields
+                    this.bookingData.passengers = this.bookingData.offer_request_passengers.map(passenger => ({
+                        // PRESERVE DUFFEL ID - CRITICAL!
+                        id: passenger.id,
+                        type: passenger.type,
+                        
+                        // Add required booking fields (empty, to be filled by user)
+                        title: '',
+                        given_name: '',
+                        family_name: '',
+                        email: '',
+                        phone_number: '',
+                        born_on: '',
+                        gender: '', // Required by Duffel API
+                        
+                        // Preserve any additional Duffel fields
+                        age: passenger.age || null,
+                        loyalty_programme_accounts: passenger.loyalty_programme_accounts || []
+                    }));
+                } else if (!this.bookingData.passengers || this.bookingData.passengers.length === 0) {
+                    console.warn('⚠️ No Duffel passengers found, creating fallback passengers (this may cause booking errors)');
+                    this.bookingData.passengers = [];
+                    
+                    // Fallback: Add adult passengers (this should not normally happen)
+                    const adults = searchData?.adults || 1;
+                    for (let i = 0; i < adults; i++) {
+                        this.bookingData.passengers.push({
+                            id: null, // Will cause Duffel error - user needs to re-search
+                            type: 'adult',
+                            title: '',
+                            given_name: '',
+                            family_name: '',
+                            email: '',
+                            phone_number: '',
+                            born_on: '',
+                            gender: '' // Required by Duffel API
+                        });
+                    }
+                    
+                    // Add child passengers (fallback)
+                    const children = searchData?.children || 0;
+                    for (let i = 0; i < children; i++) {
+                        this.bookingData.passengers.push({
+                            id: null, // Will cause Duffel error - user needs to re-search
+                            type: 'child',
+                            title: '',
+                            given_name: '',
+                            family_name: '',
+                            email: '',
+                            phone_number: '',
+                            born_on: '',
+                            gender: '' // Required by Duffel API
+                        });
+                    }
+                    
+                    // Add infant passengers (fallback)
+                    const infants = searchData?.infants || 0;
+                    for (let i = 0; i < infants; i++) {
+                        this.bookingData.passengers.push({
+                            id: null, // Will cause Duffel error - user needs to re-search
+                            type: 'infant_without_seat',
+                            title: '',
+                            given_name: '',
+                            family_name: '',
+                            email: '',
+                            phone_number: '',
+                            born_on: '',
+                            gender: '' // Required by Duffel API
+                        });
+                    }
+                }
+                
+                // Ensure all passengers have required fields for Duffel API
+                this.bookingData.passengers.forEach(passenger => {
+                    if (!passenger.gender) {
+                        passenger.gender = '';
+                    }
+                });
+                
+                this.renderPassengerForms();
+            }
+
+            renderPassengerForms() {
+                // Minimal loading for better UX
+                setTimeout(() => {
+                    const container = document.getElementById('passenger-forms-container');
+                    const passengers = this.bookingData.passengers;
+                    
+                    let formsHtml = '';
+                    passengers.forEach((passenger, index) => {
+                        formsHtml += this.generatePassengerForm(passenger, index, passengers);
+                    });
+                    
+                    container.innerHTML = formsHtml;
+                    this.setupPassengerFormEventListeners();
+                    
+                    // Show passenger forms section
+                    LoaderManager.showSection('passenger-forms');
+                    
+                    // Populate traveller dropdowns after rendering forms with a small delay
+                    console.log('🔄 Forms rendered, populating traveller dropdowns...');
+                    setTimeout(() => {
+                        console.log('📝 Calling populateTravellerDropdowns...');
+                        window.populateTravellerDropdowns();
+                    }, 100);
+                    
+                }, 150); // Reduced delay for faster loading
+            }
+
+            generatePassengerForm(passenger, index, passengers) {
+                return `
+                    <div class="border-l-4 border-orange-500 pl-6 mb-6 bg-gray-50 p-4 rounded-r-lg" data-passenger-index="${index}">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-semibold text-lg text-gray-800">
+                                Passenger ${index + 1}
+                                <span class="ml-2 text-sm px-3 py-1 rounded-full ${
+                                    passenger.type === 'adult' ? 'bg-blue-100 text-blue-800' : 
+                                    passenger.type === 'child' ? 'bg-green-100 text-green-800' : 
+                                    'bg-purple-100 text-purple-800'
+                                }">
+                                    ${passenger.type === 'adult' ? 'Adult' : 
+                                      passenger.type === 'child' ? 'Child' : 
+                                      'Infant'}
+                                </span>
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <label class="text-sm font-medium text-gray-700">Quick Select:</label>
+                                <select id="travellerSelect_${index}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white" onchange="populateFromTraveller(${index})">
+                                    <option value="">Choose existing traveller...</option>
+                                    <!-- Travellers will be populated here -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Compact Two-Column Form Layout -->
+                        <div class="space-y-4">
+                            <!-- Row 1: Title and First Name -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-title" required>
+                                        <option value="">Select Title</option>
+                                        <option value="mr" ${passenger.title === 'mr' ? 'selected' : ''}>Mr</option>
+                                        <option value="ms" ${passenger.title === 'ms' ? 'selected' : ''}>Ms</option>
+                                        <option value="mrs" ${passenger.title === 'mrs' ? 'selected' : ''}>Mrs</option>
+                                        <option value="mstr" ${passenger.title === 'mstr' ? 'selected' : ''}>Master</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                                    <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-first-name" 
+                                           value="${passenger.given_name || ''}" placeholder="Enter first name" required>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Last Name and Date of Birth -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                                    <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-last-name" 
+                                           value="${passenger.family_name || ''}" placeholder="Enter last name" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
+                                    <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-dob" 
+                                           value="${passenger.born_on || ''}" required>
+                                </div>
+                            </div>
+
+                            <!-- Row 3: Gender and Email -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-gender" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="m" ${passenger.gender === 'm' ? 'selected' : ''}>Male</option>
+                                        <option value="f" ${passenger.gender === 'f' ? 'selected' : ''}>Female</option>
+                                    </select>
+                                </div>
+                                <div ${passenger.type === 'child' ? 'style="display:none"' : ''} class="passenger-email-field">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email ${passenger.type !== 'child' ? '*' : ''}</label>
+                                    <input type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-email" 
+                                           value="${passenger.email || ''}" placeholder="Enter email address" ${passenger.type !== 'child' ? 'required' : ''}>
+                                </div>
+                            </div>
+
+                            <!-- Row 4: Phone Number with Country Code -->
+                            <div ${passenger.type === 'child' ? 'style="display:none"' : ''} class="passenger-phone-field">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number ${passenger.type !== 'child' ? '*' : ''}</label>
+                                        <div class="flex">
+                                            <div class="relative country-search-dropdown" style="width: 140px;">
+                                                <input type="text" 
+                                                       class="border border-gray-300 rounded-l-lg px-3 py-2 bg-white passenger-country-search w-full cursor-pointer" 
+                                                       placeholder="🌍 Search..." 
+                                                       readonly 
+                                                       value="${(() => {
+                                                           const phone = passenger.phone_number || '';
+                                                           if (phone.startsWith('+1')) return '�� +880';
+                                                           if (phone.startsWith('+44')) return '🇬🇧 +44';
+                                                           if (phone.startsWith('+33')) return '🇫🇷 +33';
+                                                           if (phone.startsWith('+49')) return '�� +49';
+                                                           if (phone.startsWith('+39')) return '🇮🇹 +39';
+                                                           if (phone.startsWith('+34')) return '🇪🇸 +34';
+                                                           if (phone.startsWith('+86')) return '🇨🇳 +86';
+                                                           if (phone.startsWith('+81')) return '🇯🇵 +81';
+                                                           if (phone.startsWith('+82')) return '�🇷 +82';
+                                                           if (phone.startsWith('+91')) return '🇮🇳 +91';
+                                                           if (phone.startsWith('+61')) return '🇦🇺 +61';
+                                                           if (phone.startsWith('+64')) return '�� +64';
+                                                           if (phone.startsWith('+880')) return '🇧🇩 +880';
+                                                           if (phone.startsWith('+92')) return '🇵🇰 +92';
+                                                           if (phone.startsWith('+52')) return '🇲🇽 +52';
+                                                           if (phone.startsWith('+55')) return '🇧🇷 +55';
+                                                           if (phone.startsWith('+7')) return '🇷🇺 +7';
+                                                           if (phone.startsWith('+27')) return '🇿🇦 +27';
+                                                           return window.getCountryDisplay('+880');
+                                                       })()}">
+                                                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                    </svg>
+                                                </div>
+                                                <div class="country-dropdown-options absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto hidden">
+                                                    <div class="p-2">
+                                                        <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded country-filter" placeholder="Search country...">
+                                                    </div>
+                                                    <div class="country-options-list">
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+1" data-name="United States">🇺🇸 United States (+1)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+44" data-name="United Kingdom">🇬🇧 United Kingdom (+44)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+33" data-name="France">�� France (+33)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+49" data-name="Germany">🇩🇪 Germany (+49)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+39" data-name="Italy">🇮🇹 Italy (+39)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+34" data-name="Spain">�� Spain (+34)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+86" data-name="China">🇨🇳 China (+86)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+81" data-name="Japan">🇯🇵 Japan (+81)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+82" data-name="South Korea">🇰🇷 South Korea (+82)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+91" data-name="India">🇮🇳 India (+91)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+61" data-name="Australia">🇦🇺 Australia (+61)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+64" data-name="New Zealand">🇿 New Zealand (+64)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+880" data-name="Bangladesh">🇧🇩 Bangladesh (+880)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+92" data-name="Pakistan">🇵🇰 Pakistan (+92)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+52" data-name="Mexico">�� Mexico (+52)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+55" data-name="Brazil">🇧🇷 Brazil (+55)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+7" data-name="Russia">🇷🇺 Russia (+7)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+27" data-name="South Africa">🇿🇦 South Africa (+27)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+971" data-name="UAE">�� UAE (+971)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+966" data-name="Saudi Arabia">🇸🇦 Saudi Arabia (+966)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+65" data-name="Singapore">🇸🇬 Singapore (+65)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+60" data-name="Malaysia">�� Malaysia (+60)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+66" data-name="Thailand">🇹🇭 Thailand (+66)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+84" data-name="Vietnam">🇻🇳 Vietnam (+84)</div>
+                                                        <div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="+63" data-name="Philippines">🇵� Philippines (+63)</div>
+                                                    </div>
+                                                </div>
+                                                <input type="hidden" class="passenger-country-code" value="${(() => {
+                                                    const phone = passenger.phone_number || '';
+                                                    for (const country of window.GLOBAL_COUNTRIES) {
+                                                        if (phone.startsWith(country.code)) {
+                                                            return country.code;
+                                                        }
+                                                    }
+                                                    return '+880'; // Default to Bangladesh
+                                                })()}">
+                                            </div>
+                                            <input type="tel" class="flex-1 border border-l-0 border-gray-300 rounded-r-lg px-3 py-2 passenger-phone-number" 
+                                                   value="${(passenger.phone_number || '').replace(/^\+\d{1,4}/, '')}" placeholder="Enter phone number" ${passenger.type !== 'child' ? 'required' : ''}>
+                                        </div>
+                                    </div>
+                                    <div></div> <!-- Empty div for alignment -->
+                                </div>
+                            </div>
+
+                            ${passenger.type === 'child' ? 
+                                `<div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p class="text-sm text-blue-700">
+                                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Email and phone will use Adult 1's information
+                                    </p>
+                                </div>` : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+
+            setupPassengerFormEventListeners() {
+                // Input field listeners for real-time updates
+                const container = document.getElementById('passenger-forms-container');
+                // Remove existing listeners to prevent duplicates
+                const newContainer = container.cloneNode(true);
+                container.parentNode.replaceChild(newContainer, container);
+                
+                // Add fresh listeners
+                newContainer.addEventListener('input', (e) => {
+                    this.updatePassengerData(e);
+                });
+                newContainer.addEventListener('change', (e) => {
+                    this.updatePassengerData(e);
+                });
+
+                // Country search dropdown functionality
+                this.setupCountrySearchListeners(newContainer);
+                
+                // Populate country dropdowns with global data
+                this.populateCountryDropdowns(newContainer);
+            }
+
+            populateCountryDropdowns(container) {
+                const countryLists = container.querySelectorAll('.country-options-list');
+                countryLists.forEach(list => {
+                    list.innerHTML = window.generateCountryOptions();
+                });
+            }
+
+            setupCountrySearchListeners(container) {
+                // Country search input click to open dropdown
+                container.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('passenger-country-search')) {
+                        const dropdown = e.target.closest('.country-search-dropdown');
+                        const options = dropdown.querySelector('.country-dropdown-options');
+                        
+                        // Close all other dropdowns first
+                        document.querySelectorAll('.country-dropdown-options').forEach(opt => {
+                            if (opt !== options) opt.classList.add('hidden');
+                        });
+                        
+                        // Toggle this dropdown
+                        options.classList.toggle('hidden');
+                        
+                        // Focus on search input
+                        const searchInput = options.querySelector('.country-filter');
+                        if (searchInput) {
+                            setTimeout(() => searchInput.focus(), 100);
+                        }
+                    }
+                });
+
+                // Country search filter functionality
+                container.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('country-filter')) {
+                        const searchTerm = e.target.value.toLowerCase();
+                        const dropdown = e.target.closest('.country-dropdown-options');
+                        const options = dropdown.querySelectorAll('.country-option');
+                        
+                        options.forEach(option => {
+                            const countryName = option.dataset.name.toLowerCase();
+                            const countryCode = option.dataset.code.toLowerCase();
+                            const optionText = option.textContent.toLowerCase();
+                            
+                            if (countryName.includes(searchTerm) || 
+                                countryCode.includes(searchTerm) || 
+                                optionText.includes(searchTerm)) {
+                                option.style.display = 'block';
+                            } else {
+                                option.style.display = 'none';
+                            }
+                        });
+                    }
+                });
+
+                // Country option selection
+                container.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('country-option')) {
+                        const option = e.target;
+                        const dropdown = option.closest('.country-search-dropdown');
+                        const searchInput = dropdown.querySelector('.passenger-country-search');
+                        const hiddenInput = dropdown.querySelector('.passenger-country-code');
+                        const optionsContainer = dropdown.querySelector('.country-dropdown-options');
+                        
+                        // Get selected values
+                        const countryCode = option.dataset.code;
+                        const countryName = option.dataset.name;
+                        const flag = option.textContent.split(' ')[0]; // Get emoji flag
+                        
+                        // Update inputs
+                        searchInput.value = `${flag} ${countryCode}`;
+                        hiddenInput.value = countryCode;
+                        
+                        // Hide dropdown
+                        optionsContainer.classList.add('hidden');
+                        
+                        // Reset search filter
+                        const filterInput = optionsContainer.querySelector('.country-filter');
+                        if (filterInput) {
+                            filterInput.value = '';
+                            // Show all options again
+                            optionsContainer.querySelectorAll('.country-option').forEach(opt => {
+                                opt.style.display = 'block';
+                            });
+                        }
+                        
+                        // Trigger phone number update
+                        const phoneInput = dropdown.parentNode.querySelector('.passenger-phone-number');
+                        if (phoneInput) {
+                            const changeEvent = new Event('change', { bubbles: true });
+                            phoneInput.dispatchEvent(changeEvent);
+                        }
+                    }
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.country-search-dropdown')) {
+                        document.querySelectorAll('.country-dropdown-options').forEach(options => {
+                            options.classList.add('hidden');
+                        });
+                    }
+                });
+            }
+
+
+
+            updatePassengerData(event) {
+                const target = event.target;
+                const passengerDiv = target.closest('[data-passenger-index]');
+                if (!passengerDiv) return;
+
+                const index = parseInt(passengerDiv.dataset.passengerIndex);
+                const passenger = this.bookingData.passengers[index];
+
+                if (target.classList.contains('passenger-title')) {
+                    passenger.title = target.value;
+                } else if (target.classList.contains('passenger-first-name')) {
+                    passenger.given_name = target.value;
+                } else if (target.classList.contains('passenger-last-name')) {
+                    passenger.family_name = target.value;
+                } else if (target.classList.contains('passenger-dob')) {
+                    passenger.born_on = target.value;
+                } else if (target.classList.contains('passenger-gender')) {
+                    passenger.gender = target.value;
+                } else if (target.classList.contains('passenger-email')) {
+                    passenger.email = target.value;
+                } else if (target.classList.contains('passenger-phone-number') || target.classList.contains('passenger-country-code')) {
+                    // Combine country code and phone number
+                    const passengerDiv = target.closest('[data-passenger-index]');
+                    const countryCodeSelect = passengerDiv.querySelector('.passenger-country-code');
+                    const phoneInput = passengerDiv.querySelector('.passenger-phone-number');
+                    
+                    if (countryCodeSelect && phoneInput) {
+                        const countryCode = countryCodeSelect.value;
+                        const phoneNumber = phoneInput.value;
+                        passenger.phone_number = phoneNumber ? countryCode + phoneNumber : '';
+                    }
+                }
+
+                // Save to localStorage
+                localStorage.setItem('pending_booking_data', JSON.stringify(this.bookingData));
+                this.updatePriceDetails();
+            }
+
+            updatePriceDetails() {
+                this.displayPriceDetails();
+            }
+
+            displayPriceDetails() {
+                // Minimal loading for better UX
+                setTimeout(() => {
+                    // Calculate total based on passenger count (basic calculation)
+                    const baseAmount = parseFloat(this.bookingData.total_amount || 0);
+                    const passengerCount = this.bookingData.passengers?.length || 1;
+                    const originalPassengerCount = this.bookingData.searchData?.passengers || 1;
+                    
+                    // Adjust price based on passenger count change
+                    const adjustedAmount = (baseAmount / originalPassengerCount) * passengerCount;
+                    
+                    const { total_currency } = this.bookingData;
+                    const container = document.getElementById('price-details-content');
+                    
+                    container.innerHTML = `
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-lg">
+                                <span class="text-gray-600">Base Fare (${passengerCount} passenger${passengerCount > 1 ? 's' : ''}):</span>
+                                <span class="font-medium">${total_currency} ${adjustedAmount.toFixed(2)}</span>
+                            </div>
+                            <div class="border-t border-gray-200 pt-3">
+                                <div class="flex justify-between text-xl font-bold text-blue-600">
+                                    <span>Total Amount:</span>
+                                    <span>${total_currency} ${adjustedAmount.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-500 mt-2">
+                                * All prices are inclusive of applicable taxes and fees
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Show price details section
+                    LoaderManager.showSection('price-details');
+                    
+                }, 200); // Reduced delay for faster loading
+            }
+
+            async proceedToPayment() {
+                const proceedBtn = document.getElementById('proceed-payment-btn');
+                const loadingIcon = document.getElementById('payment-loading');
+                const messagesDiv = document.getElementById('messages');
+                
+                try {
+                    // Show loading state
+                    proceedBtn.disabled = true;
+                    loadingIcon.classList.remove('hidden');
+                    messagesDiv.innerHTML = '<div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">Creating booking and preparing payment...</div>';
+                    
+                    console.log('🚀 Creating TripZip booking...');
+                    
+                    // Get access token
+                    const accessToken = localStorage.getItem('access_token');
+                    if (!accessToken) {
+                        throw new Error('Please login first to create booking');
+                    }
+                    
+                    // Calculate adjusted amount based on passenger count
+                    const passengerCount = this.bookingData.passengers ? this.bookingData.passengers.length : 0;
+                    const baseAmount = parseFloat(this.bookingData.total_amount);
+                    const adjustedAmount = passengerCount > 0 ? baseAmount * passengerCount : baseAmount;
+                    
+                    // Prepare TripZip booking data
+                    const tripzipBookingData = {
+                        passengers: this.bookingData.passengers,
+                        flightDetails: this.bookingData.flightDetails,
+                        amount: adjustedAmount,
+                        currency: this.bookingData.total_currency,
+                        offer_id: this.bookingData.offer_id
+                    };
+                    
+                    // Create TripZip booking
+                    const tripzipResponse = await axios.post('/api/create-tripzip-booking', tripzipBookingData, {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    
+                    if (tripzipResponse.data.status !== 'true') {
+                        throw new Error(tripzipResponse.data.message || 'TripZip booking creation failed');
+                    }
+                    
+                    const { booking, checkout_url } = tripzipResponse.data.data;
+                    const booking_id = booking.id;
+                    
+                    console.log('✅ TripZip booking created:', booking_id);
+                    console.log('🔗 Redirecting to Stripe checkout...');
+                    
+                    // Store booking ID and data for later use
+                    localStorage.setItem('tripzip_booking_id', booking_id);
+                    localStorage.setItem('bookingData', JSON.stringify(this.bookingData));
+                    
+                    // Show success message briefly then redirect
+                    messagesDiv.innerHTML = '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">Booking created successfully! Redirecting to payment...</div>';
+                    
+                    setTimeout(() => {
+                        window.location.href = checkout_url;
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('❌ Booking creation error:', error);
+                    
+                    // Reset loading state
+                    proceedBtn.disabled = false;
+                    loadingIcon.classList.add('hidden');
+                    
+                    const errorMsg = error.response?.data?.message || error.message || 'Booking creation failed';
+                    messagesDiv.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">Error: ${errorMsg}</div>`;
+                }
+            }
+        }
+
+        // Global variable for booking manager
+        let bookingManager;
+        let existingTravellers = []; // Store existing travellers from API
+        
+        /**
+         * Complete Duffel booking after successful Stripe payment
+         */
+        async function completeBookingAfterPayment(paymentIntentId) {
+            console.log('💳 Completing Duffel booking after successful payment:', paymentIntentId);
+            
+            try {
+                // Show loading state (with fallback if LoaderManager not loaded yet)
+                if (typeof LoaderManager !== 'undefined' && LoaderManager.showGlobalLoader) {
+                    LoaderManager.showGlobalLoader('Completing your booking...');
+                } else {
+                    console.log('⏳ LoaderManager not available, completing booking...');
+                }
+                
+                // Retrieve stored booking data
+                const storedBookingData = localStorage.getItem('pending_booking_data');
+                if (!storedBookingData) {
+                    throw new Error('No booking data found in localStorage');
+                }
+                
+                const bookingData = JSON.parse(storedBookingData);
+                console.log('📋 Retrieved booking data:', bookingData);
+                
+                // Validate that passengers have Duffel IDs
+                if (!bookingData.passengers || bookingData.passengers.length === 0) {
+                    throw new Error('No passengers found in booking data');
+                }
+                
+                // Check if passengers have the required Duffel ID field
+                const passengersWithIds = bookingData.passengers.filter(p => p.id);
+                if (passengersWithIds.length !== bookingData.passengers.length) {
+                    console.error('❌ Some passengers missing Duffel IDs:', bookingData.passengers);
+                    throw new Error('Some passengers are missing required Duffel IDs');
+                }
+                
+                console.log('✅ All passengers have Duffel IDs:', passengersWithIds);
+                
+                // Prepare booking payload for Duffel API
+                const bookingPayload = {
+                    offer_id: bookingData.selectedOffer.id,
+                    passengers: bookingData.passengers.map(passenger => ({
+                        // Preserve the Duffel ID (CRITICAL!)
+                        id: passenger.id,
+                        type: passenger.type,
+                        title: passenger.title,
+                        given_name: passenger.given_name,
+                        family_name: passenger.family_name,
+                        email: passenger.email,
+                        phone_number: passenger.phone_number,
+                        born_on: passenger.born_on,
+                        gender: passenger.gender,
+                        age: passenger.age,
+                        loyalty_programme_accounts: passenger.loyalty_programme_accounts || []
+                    })),
+                    total_amount: bookingData.selectedOffer.total_amount,
+                    total_currency: bookingData.selectedOffer.total_currency,
+                    payment_intent_id: paymentIntentId // Include payment reference
+                };
+                
+                console.log('📤 Sending Duffel booking request:', bookingPayload);
+                
+                // Make the actual Duffel booking request
+                const response = await axios.post('/api/book-flight', bookingPayload, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000 // 30 second timeout
+                });
+                
+                console.log('✅ Duffel booking successful:', response.data);
+                
+                // Store the booking result
+                localStorage.setItem('booking_confirmation', JSON.stringify(response.data));
+                
+                // Clean up temporary data
+                localStorage.removeItem('pending_booking_data');
+                
+                // Show success message
+                if (typeof LoaderManager !== 'undefined' && LoaderManager.hideGlobalLoader) {
+                    LoaderManager.hideGlobalLoader();
+                }
+                showBookingSuccess(response.data);
+                
+            } catch (error) {
+                console.error('❌ Duffel booking failed:', error);
+                if (typeof LoaderManager !== 'undefined' && LoaderManager.hideGlobalLoader) {
+                    LoaderManager.hideGlobalLoader();
+                }
+                
+                // Show detailed error information
+                let errorMessage = 'Failed to complete booking';
+                if (error.response && error.response.data) {
+                    console.error('Server error details:', error.response.data);
+                    if (error.response.data.errors) {
+                        errorMessage = error.response.data.errors.map(e => e.message).join(', ');
+                    }
+                }
+                
+                showBookingError(errorMessage);
+            }
+        }
+        
+        /**
+         * Show booking success
+         */
+        function showBookingSuccess(bookingData) {
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-green-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+                        <div class="text-green-500 text-6xl mb-4">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-gray-800 mb-4">Booking Confirmed!</h1>
+                        <p class="text-gray-600 mb-4">Your flight has been successfully booked.</p>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                            <p class="text-sm text-gray-600">Booking Reference</p>
+                            <p class="text-lg font-bold text-gray-800">${bookingData.data?.booking_reference || 'N/A'}</p>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <button onclick="window.location.href='/dashboard/bookings.html'" 
+                                    class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+                                View My Bookings
+                            </button>
+                            <button onclick="window.location.href='/flights.html'" 
+                                    class="w-full bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400">
+                                Search New Flight
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        /**
+         * Show booking error
+         */
+        function showBookingError(errorMessage) {
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-red-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+                        <div class="text-red-500 text-6xl mb-4">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-gray-800 mb-4">Booking Failed</h1>
+                        <p class="text-gray-600 mb-4">We couldn't complete your booking.</p>
+                        
+                        <div class="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+                            <p class="text-sm text-red-600">${errorMessage}</p>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            <button onclick="window.location.reload()" 
+                                    class="w-full bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
+                                Try Again
+                            </button>
+                            <button onclick="window.location.href='/flights.html'" 
+                                    class="w-full bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400">
+                                Search New Flight
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Loader Management Functions
+        const LoaderManager = {
+            // Hide global loader
+            hideGlobalLoader() {
+                const globalLoader = document.getElementById('global-loader');
+                if (globalLoader) {
+                    globalLoader.style.opacity = '0';
+                    setTimeout(() => {
+                        globalLoader.style.display = 'none';
+                    }, 300);
+                }
+            },
+            
+            // Show section content and hide section loader
+            showSection(sectionName) {
+                const loader = document.getElementById(`${sectionName}-loader`);
+                let content = document.getElementById(`${sectionName}-content`) || document.getElementById(sectionName);
+                
+                // Special case for passenger forms
+                if (sectionName === 'passenger-forms') {
+                    content = document.getElementById('passenger-forms-container');
+                }
+                
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+                if (content) {
+                    content.classList.remove('hidden');
+                    content.classList.add('fade-in');
+                }
+            },
+            
+            // Hide section loader (for sections without content containers)
+            hideLoader(loaderId) {
+                const loader = document.getElementById(loaderId);
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            },
+            
+            // Show all sections when everything is loaded
+            showAllSections() {
+                this.showSection('flight-details');
+                this.showSection('passenger-forms-container');  
+                this.showSection('price-details');
+                this.hideGlobalLoader();
+            }
+        };
+
+        // Load existing travellers from API
+        async function loadExistingTravellers() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.log('❌ No access token found, skipping traveller loading');
+                    console.log('💡 Please login first to load saved travellers');
+                    return;
+                }
+                
+                const baseUrl = await getBaseUrl();
+                console.log('🌐 Loading travellers from:', `${baseUrl}/v1/users/travelers`);
+                
+                const response = await axios.get(`${baseUrl}/v1/users/travelers`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                console.log('📥 Travellers API response:', response.data);
+                
+                if (response.data.status === 'true' || response.data.status === true) {
+                    // Extract travelers from the API response structure
+                    existingTravellers = response.data.data?.travelers || [];
+                    console.log('✅ Loaded existing travellers:', existingTravellers);
+                    console.log(`📊 Found ${existingTravellers.length} travellers`);
+                    
+                    // Populate dropdowns after loading travellers (in case forms are already rendered)
+                    setTimeout(() => {
+                        if (bookingManager && bookingManager.bookingData) {
+                            console.log('🔄 Populating dropdowns after traveller load...');
+                            populateTravellerDropdowns();
+                        }
+                    }, 100);
+                    
+                } else {
+                    console.warn('⚠️ Failed to load travellers:', response.data.message);
+                    existingTravellers = [];
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading existing travellers:', error);
+                console.error('Error details:', error.response?.data || error.message);
+                existingTravellers = [];
+            }
+        }
+
+        // Test function to manually trigger traveller loading (for debugging)
+        window.testTravellers = async function() {
+            console.log('🧪 Manual test: Loading travellers...');
+            await loadExistingTravellers();
+            if (existingTravellers.length > 0) {
+                populateTravellerDropdowns();
+            }
+        };
+
+        // Get base URL from config
+        async function getBaseUrl() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                return config.apiBaseUrl;
+            } catch (error) {
+                return 'https://api.tripzip.ai'; // Fallback
+            }
+        }
+
+        // Populate traveller dropdowns after forms are generated
+        // Make function globally available
+        window.populateTravellerDropdowns = function populateTravellerDropdowns() {
+            if (!bookingManager || !bookingManager.bookingData || !bookingManager.bookingData.passengers) {
+                console.warn('Booking manager or passengers not ready');
+                return;
+            }
+            
+            const passengers = bookingManager.bookingData.passengers;
+            console.log('Populating dropdowns for passengers:', passengers);
+            console.log('Available travellers:', existingTravellers);
+            
+            passengers.forEach((passenger, index) => {
+                const select = document.getElementById(`travellerSelect_${index}`);
+                console.log(`Processing passenger ${index}, select element:`, select);
+                
+                if (select) {
+                    // Clear existing options except the default
+                    select.innerHTML = '<option value="">Choose existing traveller...</option>';
+                    
+                    if (existingTravellers.length > 0) {
+                        // Add travellers to dropdown - filter by passenger type for better UX
+                        const passengerType = passenger.type;
+                        console.log(`Passenger ${index} type: ${passengerType}`);
+                        
+                        const compatibleTravellers = existingTravellers.filter(traveller => {
+                            // Adults can use any adult travellers
+                            if (passengerType === 'adult') return traveller.passenger_type === 'adult';
+                            // Children and infants can use child travellers or adult travellers  
+                            return traveller.passenger_type === 'adult' || traveller.passenger_type === 'child';
+                        });
+                        
+                        console.log(`Compatible travellers for passenger ${index}:`, compatibleTravellers);
+                        
+                        compatibleTravellers.forEach(traveller => {
+                            const option = document.createElement('option');
+                            option.value = traveller.id;
+                            option.textContent = `${traveller.first_name} ${traveller.last_name} (${traveller.passenger_type})`;
+                            select.appendChild(option);
+                            console.log(`Added option: ${option.textContent}`);
+                        });
+                    } else {
+                        console.log('No existing travellers found');
+                    }
+                }
+            });
+        }
+
+        // Populate form fields from selected traveller
+        function populateFromTraveller(passengerIndex) {
+            const select = document.getElementById(`travellerSelect_${passengerIndex}`);
+            const travellerId = select.value;
+            
+            if (!travellerId) return;
+            
+            const traveller = existingTravellers.find(t => t.id === travellerId);
+            if (!traveller) {
+                console.warn('Traveller not found:', travellerId);
+                return;
+            }
+            
+            console.log('Populating with traveller:', traveller);
+            
+            // Populate form fields
+            const titleField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-title`);
+            const firstNameField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-first-name`);
+            const lastNameField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-last-name`);
+            const dobField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-dob`);
+            const genderField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-gender`);
+            const emailField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-email`);
+            const countryCodeField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-country-code`);
+            const phoneNumberField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-phone-number`);
+            
+            // Map title from API format ("Mr." -> "mr")
+            if (titleField && traveller.title) {
+                const titleValue = traveller.title.toLowerCase().replace('.', '');
+                titleField.value = titleValue;
+                console.log('Set title:', titleValue);
+            }
+            
+            // Set name fields
+            if (firstNameField && traveller.first_name) {
+                firstNameField.value = traveller.first_name;
+                console.log('Set first name:', traveller.first_name);
+            }
+            
+            if (lastNameField && traveller.last_name) {
+                lastNameField.value = traveller.last_name;
+                console.log('Set last name:', traveller.last_name);
+            }
+            
+            // Set date of birth
+            if (dobField && traveller.date_of_birth) {
+                dobField.value = traveller.date_of_birth;
+                console.log('Set DOB:', traveller.date_of_birth);
+            }
+            
+            // Set gender (map from API format if needed)
+            if (genderField && traveller.gender) {
+                // Assume API returns gender as 'Male'/'Female' or 'M'/'F'
+                const genderValue = traveller.gender.toLowerCase().charAt(0); // 'm' or 'f'
+                genderField.value = genderValue;
+                console.log('Set gender:', genderValue);
+            }
+            
+            // For adults, also populate email and phone
+            const passenger = bookingManager.bookingData.passengers[passengerIndex];
+            if (passenger.type === 'adult') {
+                if (emailField && traveller.email) {
+                    emailField.value = traveller.email;
+                    console.log('Set email:', traveller.email);
+                }
+                
+                if (countryCodeField && phoneNumberField && traveller.phone_number) {
+                    // Extract country code and number from full phone number
+                    const phoneNumber = traveller.phone_number;
+                    const countryCodeMatch = phoneNumber.match(/^(\+\d{1,4})/);
+                    
+                    if (countryCodeMatch) {
+                        const countryCode = countryCodeMatch[1];
+                        const numberPart = phoneNumber.replace(countryCode, '');
+                        
+                        countryCodeField.value = countryCode;
+                        phoneNumberField.value = numberPart;
+                        
+                        // Also update the visible country search input
+                        const countrySearchField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-country-search`);
+                        if (countrySearchField) {
+                            countrySearchField.value = window.getCountryDisplay(countryCode);
+                        }
+                        
+                        console.log('Set phone:', countryCode, numberPart);
+                    } else {
+                        // Default to +880 if no country code detected
+                        countryCodeField.value = '+880';
+                        phoneNumberField.value = phoneNumber;
+                        
+                        // Update visible search field
+                        const countrySearchField = document.querySelector(`[data-passenger-index="${passengerIndex}"] .passenger-country-search`);
+                        if (countrySearchField) {
+                            countrySearchField.value = '�� +880';
+                        }
+                    }
+                }
+            }
+            
+            // Trigger input events to save the data
+            [titleField, firstNameField, lastNameField, dobField, genderField, emailField, countryCodeField, phoneNumberField].forEach(field => {
+                if (field && field.value) {
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+            
+            console.log(`✅ Populated passenger ${passengerIndex} with traveller:`, traveller.first_name + ' ' + traveller.last_name);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Page loaded, initializing...');
+            
+            // 🎯 CRITICAL: Check if returning from Stripe payment
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentIntent = urlParams.get('payment_intent');
+            const paymentIntentClientSecret = urlParams.get('payment_intent_client_secret');
+            const redirectStatus = urlParams.get('redirect_status');
+            
+            if (paymentIntent && redirectStatus === 'succeeded') {
+                console.log('🎯 STRIPE PAYMENT SUCCESS DETECTED!');
+                console.log('Payment Intent:', paymentIntent);
+                
+                // Complete the Duffel booking immediately
+                await completeBookingAfterPayment(paymentIntent);
+                return; // Don't continue with normal page initialization
+            }
+            
+            // Initialize navigation
+            new NavigationComponent('flights');
+            
+            console.log('🔑 Checking access token...');
+            const token = localStorage.getItem('access_token');
+            console.log('Access token exists:', !!token);
+            
+            // Initialize booking summary immediately (don't wait for travellers)
+            console.log('� Initializing booking manager...');
+            bookingManager = new BookingSummaryManager();
+            
+            // Load existing travellers in parallel (non-blocking)
+            console.log('� Loading travellers in background...');
+            loadExistingTravellers().then(() => {
+                console.log('✅ Travellers loaded, populating dropdowns if forms are ready...');
+                // Populate dropdowns if forms are already rendered
+                if (document.querySelector('.passenger-title')) {
+                    window.populateTravellerDropdowns();
+                }
+            }).catch(error => {
+                console.warn('⚠️ Travellers loading failed:', error);
+            });
+            
+            // Hide global loader after sections load
+            setTimeout(() => {
+                LoaderManager.hideGlobalLoader();
+            }, 500); // Much faster global loader timeout
+        });
+    </script>
+
+</body>
+</html>

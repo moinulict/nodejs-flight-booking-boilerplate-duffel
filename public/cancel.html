@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Cancelled - Soft Flight Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="components/nav.css">
+    <script src="components/nav.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- Navigation will be inserted here -->
+    
+    <div class="container mx-auto px-4 py-8 mt-20">
+        <div class="max-w-2xl mx-auto">
+            
+            <!-- Cancel Message Card -->
+            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                
+                <!-- Cancel Icon -->
+                <div class="w-20 h-20 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                
+                <!-- Header -->
+                <h1 class="text-3xl font-bold text-red-800 mb-4">Payment Cancelled</h1>
+                <p class="text-gray-600 mb-6 text-lg">Your payment was cancelled and no charges have been made to your account.</p>
+                
+                <!-- Information Box -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+                    <div class="flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-yellow-800">What Happened?</h3>
+                    </div>
+                    <ul class="text-yellow-700 space-y-2 text-left">
+                        <li>• You clicked the "Back" button or closed the payment window</li>
+                        <li>• Payment was not completed within the time limit</li>
+                        <li>• There was an issue with your payment method</li>
+                        <li>• You chose to cancel the transaction</li>
+                    </ul>
+                </div>
+
+                <!-- What's Next Section -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                    <div class="flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-blue-800">What's Next?</h3>
+                    </div>
+                    <div class="text-blue-700 space-y-2 text-left">
+                        <p>• Your booking details are still saved</p>
+                        <p>• You can try the payment again</p>
+                        <p>• Search for new flights if needed</p>
+                        <p>• Contact support if you need assistance</p>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button id="retry-payment-btn" class="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Try Payment Again
+                    </button>
+                    
+                    <a href="/flights.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search New Flights
+                    </a>
+                    
+                    <a href="/dashboard.html" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V5a2 2 0 012-2h14a2 2 0 012 2v2"></path>
+                        </svg>
+                        Go to Dashboard
+                    </a>
+                </div>
+                
+                <!-- Support Contact -->
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <p class="text-gray-600 text-sm mb-3">Need help with your booking?</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center text-sm">
+                        <a href="mailto:support@softflight.com" class="text-orange-600 hover:text-orange-700 flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            Email Support
+                        </a>
+                        <a href="tel:+1234567890" class="text-orange-600 hover:text-orange-700 flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                            </svg>
+                            Call Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PaymentCancelHandler {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.handleBookingData();
+            }
+
+            setupEventListeners() {
+                // Retry payment button
+                document.getElementById('retry-payment-btn').addEventListener('click', () => {
+                    this.retryPayment();
+                });
+            }
+
+            handleBookingData() {
+                // Check if there's pending booking data
+                const bookingData = localStorage.getItem('pending_booking_data');
+                const retryBtn = document.getElementById('retry-payment-btn');
+                
+                if (!bookingData) {
+                    // Hide retry button if no booking data
+                    retryBtn.style.display = 'none';
+                }
+            }
+
+            retryPayment() {
+                // Check if booking data exists
+                const bookingData = localStorage.getItem('pending_booking_data');
+                
+                if (bookingData) {
+                    // Redirect to booking summary to retry payment
+                    window.location.href = '/booking-summary.html';
+                } else {
+                    // Redirect to flights page to start over
+                    alert('No booking data found. Please search for flights again.');
+                    window.location.href = '/flights.html';
+                }
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize navigation
+            new NavigationComponent('flights');
+            
+            // Initialize cancel handler
+            new PaymentCancelHandler();
+        });
+    </script>
+
+</body>
+</html>

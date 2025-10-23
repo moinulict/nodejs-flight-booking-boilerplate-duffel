@@ -100,10 +100,22 @@ duffel-flight-booking/
 ├── server.js              # Express server and API routes
 ├── package.json           # Dependencies and scripts
 ├── .env                   # Environment variables
+├── airports.json          # Airport data for autocomplete
 ├── README.md             # This file
-└── public/               # Frontend files
-    ├── index.html        # Main HTML page
-    └── app.js           # Frontend JavaScript
+├── docs/                 # 📚 Documentation
+│   ├── README.md         #   Documentation index
+│   ├── DUFFEL_API_REFERENCE.md     #   Complete API guide
+│   └── TEST_SUITE_DOCUMENTATION.md #   Testing framework docs
+├── tests/                # 🧪 Test Suite
+│   ├── test-suite.js     #   Main test class (65 assertions)
+│   ├── run-tests.js      #   CLI test runner
+│   ├── health-check.js   #   Quick connectivity check
+│   └── README.md         #   Test documentation
+└── public/               # 🎨 Frontend
+    ├── index.html        #   Main application page
+    ├── app.js           #   Main application logic
+    ├── flights.js       #   Flight search functionality
+    └── booking-summary.html #   Booking confirmation page
 ```
 
 ## Testing
@@ -161,6 +173,37 @@ For production deployment:
 7. Use HTTPS
 8. Add booking management features
 
+## Documentation
+
+📚 **Comprehensive Documentation**: See the [`docs/`](./docs/) folder for detailed guides:
+
+- **[API Integration Guide](./docs/DUFFEL_API_REFERENCE.md)**: Complete Duffel API reference with examples
+- **[Testing Documentation](./docs/TEST_SUITE_DOCUMENTATION.md)**: Comprehensive test suite guide  
+- **[Documentation Index](./docs/README.md)**: Quick access to all documentation
+
+## Testing
+
+🧪 **Comprehensive Test Suite**: Run the complete test suite to validate all functionality:
+
+```bash
+# Quick health check
+node tests/health-check.js
+
+# Run all tests (65 assertions)
+node tests/run-tests.js
+
+# Run specific test components
+node tests/run-tests.js search
+node tests/run-tests.js booking
+```
+
+For detailed testing information, see [Testing Documentation](./docs/TEST_SUITE_DOCUMENTATION.md).
+
 ## Support
 
-This is a proof of concept for demonstration purposes. For production use, review Duffel's full API documentation and implement additional security and features as needed.
+This is a proof of concept for demonstration purposes. For production use:
+
+1. Review the [API Integration Guide](./docs/DUFFEL_API_REFERENCE.md)
+2. Run the [comprehensive test suite](./docs/TEST_SUITE_DOCUMENTATION.md)
+3. Check Duffel's full API documentation
+4. Implement additional security and features as needed

@@ -25,6 +25,23 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  // Only log API requests to avoid clutter from static files
+  if (req.url.startsWith('/api/')) {
+    console.log('🌐 ===== INCOMING API REQUEST =====');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('📍 Method:', req.method);
+    console.log('🔗 URL:', req.url);
+    console.log('📋 Headers:', JSON.stringify(req.headers, null, 2));
+    if (req.method === 'POST' || req.method === 'PUT') {
+      console.log('📦 Body:', JSON.stringify(req.body, null, 2));
+    }
+    console.log('🏁 ===== REQUEST DETAILS END =====');
+  }
+  next();
+});
+
 // Duffel API configuration
 const DUFFEL_API_BASE = 'https://api.duffel.com';
 const API_TOKEN = process.env.DUFFEL_API_TOKEN;
@@ -46,6 +63,155 @@ const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
 
 // External API configuration
 const EXTERNAL_API_BASE = process.env.API_BASE_URL || 'https://api.tripzip.ai';
+
+// Create TripZip booking endpoint
+app.post('/api/create-tripzip-booking', async (req, res) => {
+  try {
+    const { passengers, flightDetails, amount, currency, offer_id } = req.body;
+    
+    // Get authorization token from request headers
+    const authToken = req.headers.authorization;
+    if (!authToken) {
+      return res.status(401).json({
+        status: 'false',
+        message: 'Authorization token required. Please login first.'
+      });
+    }
+    
+    console.log('🎫 Creating TripZip booking - Request received:');
+    console.log('🔑 Auth token found:', authToken ? 'Yes' : 'No');
+    console.log('📥 Incoming data:', JSON.stringify(req.body, null, 2));
+    
+    // Create product name and description from flight details
+    const product_name = flightDetails.route || `${flightDetails.departure_city} → ${flightDetails.arrival_city}`;
+    const product_description = `${product_name}, ${flightDetails.airline}`;
+    
+    // Convert amount to cents and ensure it's an integer
+    const amount_cents = Math.ceil(amount * 100);
+    console.log(`💰 Amount conversion: ${amount} ${currency} → ${amount_cents} cents`);
+    
+    // Build the exact payload structure as specified
+    const bookingPayload = {
+      amount_cents: amount_cents,
+      plan_id: "",
+      currency: currency.toLowerCase(),
+      booking_type: "flight",
+      provider_data: {
+        passengers: passengers,
+        flightDetails: flightDetails,
+        amount: amount,
+        currency: currency,
+        offer_id: offer_id
+      },
+      booking_details: {
+        "key_0": "Test"
+      },
+      success_url: `${req.protocol}://${req.get('host')}/payment-success.html`,
+      cancel_url: `${req.protocol}://${req.get('host')}/cancel`,
+      product_name: product_name,
+      product_description: product_description
+    };
+
+    console.log('🌐 TripZip API URL:', `${EXTERNAL_API_BASE}/v1/bookings/tripzip`);
+    console.log('📤 Payload being sent to TripZip API:');
+    console.log(JSON.stringify(bookingPayload, null, 2));
+    console.log('🔑 Authorization header:', authToken);
+
+    const response = await axios.post(`${EXTERNAL_API_BASE}/v1/bookings/tripzip`, bookingPayload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authToken
+      }
+    });
+    
+    console.log('📨 TripZip API Response Status:', response.status);
+    console.log('📨 TripZip API Response Data:');
+    console.log(JSON.stringify(response.data, null, 2));
+    
+    if (response.data.data && response.data.data.booking && response.data.data.booking.id) {
+      console.log('✅ TripZip booking created successfully:', response.data.data.booking.id);
+    } else {
+      console.log('⚠️ TripZip booking response structure unexpected');
+    }
+    
+    res.json(response.data);
+    
+  } catch (error) {
+    console.error('❌ TripZip booking error details:');
+    console.error('Status:', error.response?.status);
+    console.error('Data:', JSON.stringify(error.response?.data, null, 2));
+    console.error('Message:', error.message);
+    
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({
+        status: 'false',
+        message: 'Failed to create booking'
+      });
+    }
+  }
+});
+
+// Check TripZip booking status endpoint
+app.get('/api/check-booking-status/:bookingId', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    console.log('🚀 ===== BOOKING STATUS CHECK STARTED =====');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('🆔 Booking ID:', bookingId);
+    console.log('🌐 Request URL:', req.url);
+    console.log('📍 Request method:', req.method);
+    
+    // Get authorization token from request headers
+    const authToken = req.headers.authorization;
+    console.log('🔐 Authorization header:', authToken ? `Bearer token found (${authToken.substring(0, 20)}...)` : 'Missing');
+    console.log('📋 All headers:', JSON.stringify(req.headers, null, 2));
+    
+    if (!authToken) {
+      console.log('❌ No auth token provided - returning 401');
+      return res.status(401).json({
+        status: 'false',
+        message: 'Authorization token required. Please login first.'
+      });
+    }
+    
+    console.log('🔍 Making request to TripZip API...');
+    console.log('🎯 Target URL:', `${EXTERNAL_API_BASE}/v1/bookings/${bookingId}`);
+    
+    const response = await axios.get(`${EXTERNAL_API_BASE}/v1/bookings/${bookingId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authToken
+      }
+    });
+    
+    console.log('✅ TripZip API response received');
+    console.log('📊 Response status:', response.status);
+    console.log('📋 Response data:', JSON.stringify(response.data, null, 2));
+    console.log('🎫 Booking status:', response.data?.data?.status);
+    console.log('🏁 ===== BOOKING STATUS CHECK COMPLETED =====');
+    
+    res.json(response.data);
+    
+  } catch (error) {
+    console.error('💥 ===== BOOKING STATUS CHECK ERROR =====');
+    console.error('❌ Error message:', error.message);
+    console.error('📊 Error status:', error.response?.status);
+    console.error('📋 Error data:', error.response?.data);
+    console.error('🔍 Full error:', error);
+    console.error('🏁 ===== ERROR DETAILS END =====');
+    
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({
+        status: 'false',
+        message: 'Failed to check booking status'
+      });
+    }
+  }
+});
 
 // Proxy endpoint for login to avoid CORS issues
 app.post('/api/login', async (req, res) => {
@@ -97,6 +263,21 @@ app.get('/login', (req, res) => {
 // Forgot password page
 app.get('/forgot-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'forgot-password.html'));
+});
+
+// Booking summary page
+app.get('/booking-summary', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'booking-summary.html'));
+});
+
+// Payment success page
+app.get('/payment-success', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'payment-success.html'));
+});
+
+// Payment cancel page
+app.get('/cancel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cancel.html'));
 });
 
 // Dashboard routes
@@ -239,23 +420,33 @@ app.post('/api/search-flights', async (req, res) => {
 // Create order (booking)
 app.post('/api/book-flight', async (req, res) => {
   try {
+    console.log('🚀 ===== DUFFEL BOOKING STARTED =====');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('🌐 Request URL:', req.url);
+    console.log('📍 Request method:', req.method);
+    
     const { offer_id, passengers, total_amount, total_currency } = req.body;
     
-    console.log('🎫 Received booking request:', {
+    console.log('🎫 Booking request details:', {
       offer_id,
-      passenger_count: passengers.length,
+      passenger_count: passengers?.length || 0,
       total_amount,
       total_currency
     });
+    console.log('📋 Full request body:', JSON.stringify(req.body, null, 2));
     
     // Log passengers for debugging
     console.log('👥 Passengers data:', JSON.stringify(passengers, null, 2));
     
+    // CRITICAL: DO NOT remove passenger IDs! They are required by Duffel API
+    // The IDs come from the offer request and must be preserved for booking
+    console.log('✅ Using passengers with original IDs (required by Duffel):', JSON.stringify(passengers, null, 2));
+
     // Build booking data exactly as Duffel API expects
     const bookingData = {
       data: {
         selected_offers: [offer_id],
-        passengers: passengers,
+        passengers: passengers, // Use original passengers with their IDs
         payments: [
           {
             type: 'balance',
@@ -267,19 +458,32 @@ app.post('/api/book-flight', async (req, res) => {
       }
     };
 
-    console.log('📤 Sending to Duffel API:', JSON.stringify(bookingData, null, 2));
+    console.log('📤 Sending to Duffel API...');
+    console.log('🎯 Target URL:', `${DUFFEL_API_BASE}/air/orders`);
+    console.log('📋 Payload:', JSON.stringify(bookingData, null, 2));
     
     const response = await duffelAPI.post('/air/orders', bookingData);
     
-    console.log('✅ Duffel booking successful:', response.data.data.id);
+    console.log('✅ Duffel API response received');
+    console.log('📊 Response status:', response.status);
+    console.log('🎫 Booking ID:', response.data?.data?.id);
+    console.log('📋 Full response:', JSON.stringify(response.data, null, 2));
+    console.log('🏁 ===== DUFFEL BOOKING COMPLETED =====');
+    
     res.json(response.data);
   } catch (error) {
-    console.error('❌ Booking error:', error.response?.data || error.message);
+    console.error('💥 ===== DUFFEL BOOKING ERROR =====');
+    console.error('❌ Error message:', error.message);
+    console.error('📊 Error status:', error.response?.status);
+    console.error('📋 Error data:', error.response?.data);
     
     // Log detailed error info
     if (error.response?.data?.errors) {
       console.error('❌ Validation errors:', JSON.stringify(error.response.data.errors, null, 2));
     }
+    
+    console.error('🔍 Full error object:', error);
+    console.error('🏁 ===== DUFFEL ERROR DETAILS END =====');
     
     res.status(500).json({ 
       error: 'Failed to book flight',

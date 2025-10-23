@@ -126,26 +126,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Passenger dropdown functionality
     setupPassengerDropdown();
-    
-    // Booking modal event listeners
-    const closeModalBtn = document.getElementById('closeModal');
-    const cancelBookingBtn = document.getElementById('cancelBooking');
-    const bookingForm = document.getElementById('bookingForm');
-    
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', closeBookingModal);
-    }
-    
-    if (cancelBookingBtn) {
-        cancelBookingBtn.addEventListener('click', closeBookingModal);
-    }
-    
-    if (bookingForm) {
-        bookingForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            processBooking();
-        });
-    }
 });
 
 function resetAllFilters() {
@@ -902,8 +882,54 @@ function selectFlight(offerId) {
     
     selectedOffer = allFlights.find(offer => offer.id === offerId);
     if (selectedOffer) {
-        openBookingModal();
+        // Redirect directly to booking summary instead of opening modal
+        redirectToBookingSummary(selectedOffer);
     }
+}
+
+// New function to redirect to booking summary
+function redirectToBookingSummary(offer) {
+    console.log('🛫 Redirecting to booking summary with offer:', offer);
+    
+    // Get passenger counts from the current search
+    const adults = parseInt(document.getElementById('adultsCount')?.textContent) || 1;
+    const children = parseInt(document.getElementById('childrenCount')?.textContent) || 0;
+    const infants = parseInt(document.getElementById('infantsCount')?.textContent) || 0;
+    
+    // CRITICAL: Get passenger IDs from the offer - these are required for Duffel booking
+    const passengersFromOffer = offer.passengers || [];
+    console.log('👥 Passengers from selected offer (with IDs):', passengersFromOffer);
+    
+    // Prepare booking data for the summary page
+    const bookingData = {
+        offer_id: offer.id,
+        total_amount: offer.total_amount,
+        total_currency: offer.total_currency,
+        flightDetails: {
+            route: `${offer.slices[0].segments[0].origin.iata_code} → ${offer.slices[0].segments[0].destination.iata_code}`,
+            airline: offer.slices[0].segments[0].marketing_carrier?.name || offer.slices[0].segments[0].operating_carrier?.name || 'Unknown',
+            departure: offer.slices[0].segments[0].departing_at
+        },
+        searchData: {
+            passengers: adults + children + infants,
+            adults: adults,
+            children: children,
+            infants: infants
+        },
+        passengers: passengersFromOffer, // Include passengers with their Duffel IDs
+        offer_request_passengers: passengersFromOffer // Store original passenger data for reference
+    };
+    
+    // Store booking data for summary page
+    localStorage.setItem('pending_booking_data', JSON.stringify(bookingData));
+    
+    // Store the current URL for the back button
+    localStorage.setItem('original_search_url', window.location.href);
+    
+    console.log('✅ Booking data saved, redirecting to summary page...');
+    
+    // Redirect to booking summary page
+    window.location.href = '/booking-summary.html';
 }
 
 async function openBookingModal() {
@@ -1192,19 +1218,28 @@ async function processBooking() {
         }
     };
     
-    // Store booking data in localStorage for payment process
-    localStorage.setItem('pending_booking_data', JSON.stringify(bookingData));
-    
+    // New Booking Flow: TripZip → Stripe → Duffel
     try {
-        console.log('� Proceeding to payment gateway...');
+        console.log('� Preparing booking summary...');
         
-        // Redirect to payment page or open Stripe payment modal
-        await initiateStripePayment(bookingData);
+        // Check if user is logged in
+        const accessToken = localStorage.getItem('access_token');
+        if (!accessToken) {
+            throw new Error('Please login first to create booking');
+        }
+        
+        // Store booking data for summary page
+        localStorage.setItem('pending_booking_data', JSON.stringify(bookingData));
+        
+        console.log('✅ Booking data saved, redirecting to summary page...');
+        
+        // Redirect to booking summary page
+        window.location.href = '/booking-summary.html';
         
     } catch (error) {
-        console.error('❌ Payment initiation error:', error);
-        const errorMsg = error.response?.data?.error || error.message || 'Payment initiation failed';
-        alert('Payment failed: ' + errorMsg);
+        console.error('❌ Booking creation error:', error);
+        const errorMsg = error.message || 'Booking preparation failed';
+        alert('Error: ' + errorMsg);
     }
 }
 
@@ -1703,34 +1738,6 @@ function swapOriginDestination() {
     destinationInput.setAttribute('data-city', tempCity || '');
     destinationInput.setAttribute('data-type', tempType || '');
 }
-
-// Debug function to test search manually
-function testSearch() {
-    console.log('🧪 Manual test search triggered');
-    
-    // Set test data
-    const origin = document.getElementById('origin');
-    const destination = document.getElementById('destination');
-    const departureDate = document.getElementById('departureDate');
-    
-    if (origin && destination && departureDate) {
-        origin.value = 'Hazrat Shahjalal International Airport (DAC)';
-        origin.setAttribute('data-iata', 'DAC');
-        
-        destination.value = 'Netaji Subhash Chandra Bose International Airport (CCU)';
-        destination.setAttribute('data-iata', 'CCU');
-        
-        departureDate.value = '2025-10-31';
-        
-        console.log('🧪 Test data set, calling performSearch()');
-        performSearch();
-    } else {
-        console.error('❌ Required form elements not found');
-    }
-}
-
-// Make testSearch available globally for debugging
-window.testSearch = testSearch;
 
 // Country codes data
 const countryCodes = [

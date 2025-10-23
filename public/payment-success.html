@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation - Soft Flight Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="components/nav.css">
+    <script src="components/nav.js"></script>
+    <style>
+        @media print {
+            body { 
+                background: white !important; 
+                color: black !important;
+                font-size: 12px;
+            }
+            .booking-confirmation {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                margin: 0 !important;
+                max-width: none !important;
+            }
+            button, .no-print {
+                display: none !important;
+            }
+            .print-header {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+        }
+        .print-header {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- Navigation will be inserted here -->
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="mx-auto">
+            
+            <!-- Processing Card -->
+            <div class="rounded-lg p-8 text-center">
+                
+                <!-- Loading Animation -->
+                <div id="loading-section" class="mb-6">
+                    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Processing Your Payment</h2>
+                    <p class="text-gray-600">Please wait while we confirm your payment and book your flight...</p>
+                </div>
+                
+                <!-- Success Section -->
+                <div id="success-section" class="hidden mb-6">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-green-800 mb-2">Booking Confirmed!</h2>
+                    <p class="text-gray-600">Your flight has been successfully booked. You will receive a confirmation email shortly.</p>
+                </div>
+                
+                <!-- Error Section -->
+                <div id="error-section" class="hidden mb-6">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-red-800 mb-2">Booking Failed</h2>
+                    <p id="error-message" class="text-gray-600">Something went wrong with your booking. Please contact support.</p>
+                </div>
+                
+                <!-- Messages -->
+                <div id="messages" class="mb-6"></div>
+                
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PaymentSuccessHandler {
+            constructor() {
+                console.log('🚀 PaymentSuccessHandler constructor called');
+                console.log('📅 Timestamp:', new Date().toISOString());
+                console.log('🔗 Current URL:', window.location.href);
+                console.log('📍 Page loaded successfully');
+                this.initializeHandlers();
+                this.processPaymentSuccess();
+            }
+
+            initializeHandlers() {
+                // Event handlers for buttons (if they exist initially)
+                const dashboardBtn = document.getElementById('dashboard-btn');
+                const searchBtn = document.getElementById('search-btn');
+                
+                if (dashboardBtn) {
+                    dashboardBtn.addEventListener('click', () => {
+                        window.location.href = '/dashboard/';
+                    });
+                }
+                
+                if (searchBtn) {
+                    searchBtn.addEventListener('click', () => {
+                        window.location.href = '/flights.html';
+                    });
+                }
+            }
+            
+            async processPaymentSuccess() {
+                try {
+                    console.log('🎯 Starting payment success processing...');
+                    console.log('📍 Function called at:', new Date().toISOString());
+                    console.log('🌐 Current URL:', window.location.href);
+                    console.log('🔗 URL parameters:', window.location.search);
+                    
+                    // Get tripzip booking ID from localStorage  
+                    const tripzipBookingId = localStorage.getItem('tripzip_booking_id');
+                    console.log('🆔 TripZip booking ID:', tripzipBookingId);
+                    
+                    // Get booking data from localStorage
+                    let bookingData = JSON.parse(localStorage.getItem('pending_booking_data') || '{}');
+                    if (!bookingData.passengers || Object.keys(bookingData).length === 0) {
+                        // Try the alternative bookingData key
+                        console.log('🔄 Trying alternative localStorage key: bookingData');
+                        bookingData = JSON.parse(localStorage.getItem('bookingData') || '{}');
+                    }
+                    console.log('📦 Final booking data from localStorage:', bookingData);
+                    console.log('📦 Available localStorage keys:', Object.keys(localStorage));
+                    
+                    // Additional check for empty bookingData
+                    if (!bookingData || Object.keys(bookingData).length === 0) {
+                        console.error('❌ No booking data found in localStorage');
+                        throw new Error('Booking data not found. Please restart the booking process.');
+                    }
+                    
+                    if (!tripzipBookingId) {
+                        console.error('❌ TripZip booking ID not found');
+                        showError('Booking ID not found. Please try again or contact support.');
+                        return;
+                    }
+                    
+                    console.log('🔍 Checking TripZip booking status:', tripzipBookingId);                    // Get access token from localStorage
+                    const accessToken = localStorage.getItem('access_token');
+                    console.log('🔐 Access token:', accessToken ? 'Found' : 'Missing');
+                    
+                    if (!accessToken) {
+                        throw new Error('Please login first to check booking status');
+                    }
+                    
+                    // Step 1: Check TripZip booking status
+                    console.log('📡 Making API call to check booking status...');
+                    let statusResponse;
+                    try {
+                        statusResponse = await axios.get(`/api/check-booking-status/${tripzipBookingId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        });
+                        
+                        console.log('📨 Status response:', statusResponse.data);
+                        
+                        if (statusResponse.data.status !== 'true') {
+                            throw new Error(statusResponse.data.message || 'Failed to check booking status');
+                        }
+                    } catch (apiError) {
+                        console.error('❌ API call failed:', apiError.message);
+                        throw apiError;
+                    }
+
+                    const bookingStatus = statusResponse.data.data.booking?.status;
+                    console.log('📊 Booking status:', bookingStatus);
+                    
+                    // Check if payment is successful (pending or completed)
+                    if (bookingStatus !== 'pending' && bookingStatus !== 'success' && bookingStatus !== 'completed') {
+                        throw new Error(`Payment not successful. Status: ${bookingStatus}`);
+                    }
+
+                    console.log('✅ Payment verified, creating Duffel booking...');
+                    
+                    // Step 2: Validate and prepare Duffel booking data
+                    console.log('📝 Preparing Duffel booking with data:', bookingData);
+                    
+                    // Validate required data
+                    if (!bookingData.passengers || bookingData.passengers.length === 0) {
+                        throw new Error('No passenger data found. Please go back and fill in passenger information.');
+                    }
+                    
+                    const offerId = bookingData.selectedFlight?.id || bookingData.offer_id;
+                    if (!offerId) {
+                        throw new Error('No flight offer ID found. Please restart the booking process.');
+                    }
+                    
+                    // Validate passenger data structure
+                    for (let i = 0; i < bookingData.passengers.length; i++) {
+                        const passenger = bookingData.passengers[i];
+                        const requiredFields = ['title', 'given_name', 'family_name', 'born_on', 'gender', 'type'];
+                        
+                        for (const field of requiredFields) {
+                            if (!passenger[field]) {
+                                throw new Error(`Missing required passenger information: ${field} for passenger ${i + 1}`);
+                            }
+                        }
+                        
+                        // Validate email and phone for non-child passengers
+                        if (passenger.type !== 'child') {
+                            if (!passenger.email) {
+                                throw new Error(`Email required for passenger ${i + 1}`);
+                            }
+                            if (!passenger.phone_number) {
+                                throw new Error(`Phone number required for passenger ${i + 1}`);
+                            }
+                        }
+                    }
+                    
+                    console.log('✅ Passenger data validation passed');
+                    
+                    // Step 3: Create Duffel booking
+                    let duffelResponse;
+                    try {
+                        // ✅ CRITICAL: PRESERVE passenger IDs from original offer request (required by Duffel!)
+                        // Validate that passengers have the required Duffel ID field
+                        const passengersWithIds = bookingData.passengers.filter(p => p.id);
+                        if (passengersWithIds.length !== bookingData.passengers.length) {
+                            console.error('❌ Some passengers missing Duffel IDs:', bookingData.passengers);
+                            throw new Error('Some passengers are missing required Duffel IDs from the original offer request. Please restart the booking process.');
+                        }
+                        
+                        console.log('✅ All passengers have Duffel IDs:', passengersWithIds);
+                        
+                        const duffelPayload = {
+                            offer_id: bookingData.selectedFlight?.id || bookingData.offer_id,
+                            passengers: bookingData.passengers.map(passenger => ({
+                                // PRESERVE the Duffel ID (CRITICAL!)
+                                id: passenger.id,
+                                type: passenger.type,
+                                title: passenger.title,
+                                given_name: passenger.given_name,
+                                family_name: passenger.family_name,
+                                email: passenger.email,
+                                phone_number: passenger.phone_number,
+                                born_on: passenger.born_on,
+                                gender: passenger.gender,
+                                age: passenger.age,
+                                loyalty_programme_accounts: passenger.loyalty_programme_accounts || []
+                            })),
+                            total_amount: bookingData.selectedFlight?.total_amount || bookingData.total_amount,
+                            total_currency: bookingData.selectedFlight?.total_currency || bookingData.total_currency
+                        };
+                        
+                        console.log('📋 Duffel booking payload:', JSON.stringify(duffelPayload, null, 2));
+                        console.log('🎫 Offer ID:', duffelPayload.offer_id);
+                        console.log('👥 Passengers count:', duffelPayload.passengers?.length);
+                        console.log('💰 Total amount:', duffelPayload.total_amount, duffelPayload.total_currency);
+                        
+                        // Log passenger structure for debugging
+                        if (duffelPayload.passengers && duffelPayload.passengers.length > 0) {
+                            console.log('👤 First passenger sample:', JSON.stringify(duffelPayload.passengers[0], null, 2));
+                        }
+                        
+                        console.log('🚀 Making Duffel booking API call...');
+                        duffelResponse = await axios.post('/api/book-flight', duffelPayload);
+
+                        console.log('📨 Duffel API response status:', duffelResponse.status);
+                        console.log('📋 Duffel API response data:', JSON.stringify(duffelResponse.data, null, 2));
+
+                        // Check if Duffel booking was successful (Duffel returns data.data.id for successful bookings)
+                        if (!duffelResponse.data.data || !duffelResponse.data.data.id) {
+                            console.error('❌ Invalid Duffel response structure:', duffelResponse.data);
+                            throw new Error('Failed to create Duffel booking - Invalid response');
+                        }
+
+                        console.log('🎉 Duffel booking created successfully!', duffelResponse.data.data.id);
+                        
+                        // Cleanup localStorage before showing success (in case showSuccess has DOM issues)
+                        localStorage.removeItem('tripzip_booking_id');
+                        localStorage.removeItem('pending_booking_data');
+                        localStorage.removeItem('bookingData');
+                        
+                        // Show success with booking details (pass the actual Duffel order data)
+                        // Wrap in try-catch to prevent DOM errors from triggering main error handler
+                        try {
+                            this.showSuccess(duffelResponse.data.data, bookingData, statusResponse.data.data);
+                        } catch (displayError) {
+                            console.warn('⚠️ Minor display issue after successful booking:', displayError.message);
+                            // Booking was successful, just log display issues without showing error to user
+                        }
+                        
+                        // Exit the function successfully - no need to continue to outer catch
+                        return;
+                        
+                    } catch (duffelError) {
+                        console.error('❌ Duffel booking failed:', duffelError.message);
+                        console.error('❌ Error details:', duffelError.response?.data || duffelError);
+                        console.error('❌ Error status:', duffelError.response?.status);
+                        console.error('❌ Error headers:', duffelError.response?.headers);
+                        
+                        // Provide more specific error message
+                        const errorMsg = duffelError.response?.data?.message || 
+                                       duffelError.response?.data?.error || 
+                                       duffelError.message || 
+                                       'Unknown Duffel booking error';
+                        throw new Error(`Duffel booking failed: ${errorMsg}`);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Payment processing error:', error);
+                    this.showError(error.message);
+                }
+            }
+
+            showSuccess(duffelOrder, bookingData, tripzipData) {
+                console.log('🎉 showSuccess() called');
+                console.log('📊 Duffel Order:', duffelOrder);
+                console.log('📋 Booking Data:', bookingData);
+                console.log('🎫 TripZip Data:', tripzipData);
+                
+                console.log('🔄 Hiding loading section...');
+                const loadingSection = document.getElementById('loading-section');
+                if (loadingSection) {
+                    loadingSection.classList.add('hidden');
+                }
+                
+                console.log('🏗️ Building booking confirmation display...');
+                // Create detailed booking confirmation
+                this.displayBookingConfirmation(duffelOrder, bookingData, tripzipData);
+                
+                console.log('✅ Success content displayed successfully');
+                
+                console.log('✨ Success page fully rendered');
+                // Store order data for dashboard
+                if (duffelOrder) {
+                    localStorage.setItem('last_booking', JSON.stringify(duffelOrder));
+                }
+            }
+
+            displayBookingConfirmation(duffelOrder, bookingData, tripzipData) {
+                const successSection = document.getElementById('success-section');
+                
+                if (!successSection) {
+                    console.error('❌ Success section not found in DOM');
+                    return;
+                }
+                
+                // Remove hidden class to make success section visible
+                successSection.classList.remove('hidden');
+                
+                // Debug: Log all data being used for display
+                console.log('🔍 Duffel Order:', JSON.stringify(duffelOrder, null, 2));
+                console.log('🔍 Booking Data:', JSON.stringify(bookingData, null, 2));
+                console.log('🔍 TripZip Data:', JSON.stringify(tripzipData, null, 2));
+                console.log('🔍 Passenger data being displayed:', bookingData.passengers);
+                
+                // Generate PNR from Duffel order data
+                const pnr = duffelOrder.booking_reference || 
+                           duffelOrder.id?.substring(4, 10).toUpperCase() || 
+                           'TZ' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                const bookingId = duffelOrder.id || 'N/A';
+                
+                // Extract flight details from Duffel order with better fallbacks
+                const slice = duffelOrder.slices?.[0];
+                const segment = slice?.segments?.[0];
+                
+                // Try multiple sources for airline name
+                const airline = segment?.marketing_carrier?.name || 
+                              segment?.operating_carrier?.name || 
+                              bookingData.selectedFlight?.airline ||
+                              bookingData.flightDetails?.airline || 
+                              'Airline Information Available';
+                
+                // Try multiple sources for route
+                const originCity = segment?.origin?.city_name || bookingData.selectedFlight?.origin || bookingData.origin || 'Origin';
+                const destCity = segment?.destination?.city_name || bookingData.selectedFlight?.destination || bookingData.destination || 'Destination';
+                const route = `${originCity} → ${destCity}`;
+                
+                // Try multiple sources for departure time
+                const departureTime = segment?.departing_at || 
+                                    bookingData.selectedFlight?.departure || 
+                                    bookingData.flightDetails?.departure || 
+                                    new Date().toISOString();
+                
+                console.log('✈️ Flight Details Extracted:', { airline, route, departureTime, pnr, bookingId });
+                
+                successSection.innerHTML = `
+                    <div class="booking-confirmation bg-white rounded-lg shadow-lg p-8 max-w-6xl mx-auto">
+                        <!-- Action Buttons at Top -->
+                        <div class="flex flex-col sm:flex-row gap-4 justify-end border-b pb-6 mb-6">
+                            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                </svg>
+                                Print Booking
+                            </button>
+                            <a href="/dashboard/" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V5a2 2 0 012-2h14a2 2 0 012 2v2"></path>
+                                </svg>
+                                Go to Dashboard
+                            </a>
+                            <a href="/flights.html" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Search More Flights
+                            </a>
+                        </div>
+                        
+                        <!-- Header -->
+                        <div class="text-center border-b pb-6 mb-6">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <h2 class="text-3xl font-bold text-green-800 mb-2">🎉 Booking Confirmed!</h2>
+                            <p class="text-gray-600 mb-4">Your flight has been successfully booked</p>
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4 inline-block">
+                                <p class="text-sm text-green-700 mb-1">PNR / Confirmation Number</p>
+                                <p class="text-2xl font-bold text-green-800">${pnr}</p>
+                            </div>
+                        </div>
+
+                        <!-- Flight Details -->
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">✈️ Flight Information</h3>
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div class="space-y-3">
+                                    <div class="flex">
+                                        <span class="text-gray-600 font-medium w-24">Route:</span>
+                                        <span class="font-bold text-orange-600 ml-2">${route}</span>
+                                    </div>
+                                    <div class="flex">
+                                        <span class="text-gray-600 font-medium w-24">Airline:</span>
+                                        <span class="font-semibold ml-2">${airline}</span>
+                                    </div>
+                                    <div class="flex">
+                                        <span class="text-gray-600 font-medium w-24">Departure:</span>
+                                        <span class="font-semibold ml-2">${new Date(departureTime).toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex">
+                                        <span class="text-gray-600 font-medium w-28">Booking ID:</span>
+                                        <span class="font-mono text-sm ml-2">${bookingId}</span>
+                                    </div>
+                                    <div class="flex">
+                                        <span class="text-gray-600 font-medium w-28">Status:</span>
+                                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium ml-2">Confirmed</span>
+                                    </div>
+                                    <div class="flex">
+                                        <span class="text-gray-600 font-medium w-28">Booking Date:</span>
+                                        <span class="font-semibold ml-2">${new Date().toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Passenger Details -->
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">👥 Passenger Details</h3>
+                            ${(bookingData.passengers || []).map((passenger, index) => `
+                                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                    <h4 class="font-bold text-lg mb-3 text-orange-600">Passenger ${index + 1}</h4>
+                                    <div class="grid md:grid-cols-3 gap-4">
+                                        <div>
+                                            <p class="text-gray-600 text-sm">Full Name</p>
+                                            <p class="font-semibold">${(passenger.title || '').toUpperCase()}. ${passenger.given_name || 'N/A'} ${passenger.family_name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600 text-sm">Date of Birth</p>
+                                            <p class="font-semibold">${passenger.born_on ? new Date(passenger.born_on).toLocaleDateString() : 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600 text-sm">Contact</p>
+                                            <p class="font-semibold">${passenger.email || (passenger.type === 'child' ? 'Same as Adult 1' : 'N/A')}</p>
+                                            <p class="text-sm text-gray-600">${passenger.phone_number || (passenger.type === 'child' ? 'Same as Adult 1' : 'N/A')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <!-- Payment Details -->
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold mb-4 text-gray-800 border-b pb-2">💳 Payment Summary</h3>
+                            <div class="bg-orange-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-gray-600 w-40">Total Amount Paid:</span>
+                                    <span class="text-2xl font-bold text-orange-600 ml-2">${bookingData.total_currency || 'USD'} ${bookingData.total_amount ? parseFloat(bookingData.total_amount).toFixed(2) : 'N/A'}</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span class="w-40">Payment Method:</span>
+                                    <span class="ml-2">Credit Card (Stripe)</span>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-600">
+                                    <span class="w-40">Transaction ID:</span>
+                                    <span class="font-mono ml-2">${tripzipData.booking?.stripe_session_id?.substring(0, 20) || 'N/A'}...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Important Information -->
+                        <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <h3 class="text-lg font-bold mb-2 text-yellow-800">📋 Important Information</h3>
+                            <ul class="text-sm text-yellow-700 space-y-1">
+                                <li>• Please arrive at the airport at least 2 hours before domestic flights and 3 hours before international flights</li>
+                                <li>• Carry a valid government-issued photo ID and your e-ticket</li>
+                                <li>• Check baggage restrictions and airline policies before travel</li>
+                                <li>• Keep this confirmation for your records</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            showError(errorMessage) {
+                console.error('❌ showError() called with message:', errorMessage);
+                console.log('🔄 Hiding loading section...');
+                const loadingSection = document.getElementById('loading-section');
+                if (loadingSection) {
+                    loadingSection.classList.add('hidden');
+                }
+                
+                console.log('⚠️ Showing error section...');
+                const errorSection = document.getElementById('error-section');
+                const errorMessageEl = document.getElementById('error-message');
+                const actionButtons = document.getElementById('action-buttons');
+                
+                if (errorSection) {
+                    errorSection.classList.remove('hidden');
+                }
+                if (errorMessageEl) {
+                    errorMessageEl.textContent = errorMessage;
+                }
+                if (actionButtons) {
+                    actionButtons.classList.remove('hidden');
+                }
+                
+                console.log('💥 Error page fully rendered');
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📋 DOMContentLoaded event fired');
+            console.log('🌐 Document ready state:', document.readyState);
+            console.log('📄 Page title:', document.title);
+            
+            try {
+                console.log('🧭 Initializing navigation component...');
+                // Initialize navigation
+                new NavigationComponent('flights');
+                console.log('✅ Navigation component initialized');
+                
+                console.log('💳 Initializing payment success handler...');
+                // Initialize payment success handler
+                new PaymentSuccessHandler();
+                console.log('✅ Payment success handler initialized');
+            } catch (initError) {
+                console.error('❌ Initialization error:', initError);
+                console.error('🔍 Error details:', initError.stack);
+            }
+        });
+    </script>
+
+</body>
+</html>

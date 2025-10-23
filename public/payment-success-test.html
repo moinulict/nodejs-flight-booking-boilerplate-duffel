@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Success Test - Flight Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold text-center mb-6">Test Payment Success Page</h1>
+        
+        <p class="text-gray-600 mb-4">
+            This page tests the fixed payment-success.html flow with proper passenger ID handling.
+        </p>
+        
+        <div class="space-y-4">
+            <button onclick="setupTestData()" 
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+                1. Setup Test Data with Passenger IDs
+            </button>
+            
+            <button onclick="openPaymentSuccessPage()" 
+                    class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+                2. Open Payment Success Page
+            </button>
+            
+            <button onclick="checkLocalStorage()" 
+                    class="w-full bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700">
+                3. Check LocalStorage Data
+            </button>
+        </div>
+        
+        <div id="status" class="mt-6 p-4 bg-gray-50 rounded text-sm"></div>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            const colors = {
+                'info': 'text-blue-600',
+                'success': 'text-green-600', 
+                'error': 'text-red-600'
+            };
+            status.innerHTML = `<span class="${colors[type]}">${message}</span>`;
+        }
+
+        async function setupTestData() {
+            try {
+                updateStatus('Setting up test data with proper passenger IDs...', 'info');
+                
+                // First, get a real offer with passenger IDs from the search API
+                const searchResponse = await fetch('/api/search-flights', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        origin: 'LHR',
+                        destination: 'JFK',
+                        departureDate: '2025-11-30',
+                        passengers: [{ type: 'adult' }],
+                        cabinClass: 'economy'
+                    })
+                });
+                
+                const searchData = await searchResponse.json();
+                console.log('Search response:', searchData);
+                
+                if (!searchData.success || !searchData.data || searchData.data.length === 0) {
+                    throw new Error('Failed to get flight offers');
+                }
+                
+                const firstOffer = searchData.data[0];
+                const passengerWithDuffelId = firstOffer.passengers[0];
+                
+                console.log('Got passenger with Duffel ID:', passengerWithDuffelId);
+                
+                // Create booking data with proper passenger structure
+                const bookingData = {
+                    selectedFlight: {
+                        id: firstOffer.id,
+                        total_amount: firstOffer.total_amount,
+                        total_currency: firstOffer.total_currency
+                    },
+                    offer_id: firstOffer.id,
+                    total_amount: firstOffer.total_amount,
+                    total_currency: firstOffer.total_currency,
+                    passengers: [{
+                        // ✅ CRITICAL: Include the Duffel passenger ID
+                        id: passengerWithDuffelId.id,
+                        type: passengerWithDuffelId.type,
+                        title: 'mr',
+                        given_name: 'Moinul',
+                        family_name: 'Islam',
+                        email: 'moinul@gmail.com',
+                        phone_number: '+8801616848425',
+                        born_on: '1987-01-01',
+                        gender: 'm',
+                        age: passengerWithDuffelId.age,
+                        loyalty_programme_accounts: passengerWithDuffelId.loyalty_programme_accounts || []
+                    }]
+                };
+                
+                // Store in localStorage (both keys for compatibility)
+                localStorage.setItem('pending_booking_data', JSON.stringify(bookingData));
+                localStorage.setItem('bookingData', JSON.stringify(bookingData));
+                localStorage.setItem('tripzip_booking_id', 'test_booking_' + Date.now());
+                
+                // Mock access token
+                localStorage.setItem('access_token', 'test_token_123');
+                
+                updateStatus(
+                    `✅ Test data setup complete!\n` +
+                    `Passenger ID: ${passengerWithDuffelId.id}\n` +
+                    `Offer ID: ${firstOffer.id}\n` +
+                    `Amount: ${firstOffer.total_currency} ${firstOffer.total_amount}`, 
+                    'success'
+                );
+                
+            } catch (error) {
+                console.error('Setup error:', error);
+                updateStatus('❌ Failed to setup test data: ' + error.message, 'error');
+            }
+        }
+
+        function openPaymentSuccessPage() {
+            const bookingData = localStorage.getItem('pending_booking_data');
+            if (!bookingData) {
+                updateStatus('❌ No test data found. Run setup first!', 'error');
+                return;
+            }
+            
+            updateStatus('🚀 Opening payment success page...', 'success');
+            
+            // Open the payment success page
+            setTimeout(() => {
+                window.open('/payment-success.html', '_blank');
+            }, 1000);
+        }
+
+        function checkLocalStorage() {
+            const keys = [
+                'pending_booking_data',
+                'bookingData', 
+                'tripzip_booking_id',
+                'access_token'
+            ];
+            
+            let status = 'LocalStorage Contents:\n\n';
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    if (key.includes('booking_data') || key === 'bookingData') {
+                        try {
+                            const parsed = JSON.parse(value);
+                            const passengerIds = parsed.passengers?.map(p => p.id) || [];
+                            status += `${key}: ✅ Found (Passenger IDs: ${passengerIds.join(', ')})\n`;
+                        } catch (e) {
+                            status += `${key}: ⚠️ Found but invalid JSON\n`;
+                        }
+                    } else {
+                        status += `${key}: ✅ Found\n`;
+                    }
+                } else {
+                    status += `${key}: ❌ Missing\n`;
+                }
+            });
+            
+            updateStatus(status, 'info');
+        }
+
+        // Initialize
+        updateStatus('Ready to test payment success page with passenger ID fix!', 'info');
+    </script>
+</body>
+</html>
