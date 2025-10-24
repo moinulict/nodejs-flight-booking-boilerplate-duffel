@@ -9,96 +9,32 @@ class SignupManager {
         this.otpCode = '';
         this.otpTimer = null;
         this.otpTimeLeft = 600; // 10 minutes in seconds
-        this.selectedCountry = { code: '+1', flag: '🇺🇸', name: 'United States' };
-        this.countries = [
-            { code: '+1', flag: '🇺🇸', name: 'United States' },
-            { code: '+1', flag: '🇨🇦', name: 'Canada' },
-            { code: '+44', flag: '🇬🇧', name: 'United Kingdom' },
-            { code: '+33', flag: '🇫🇷', name: 'France' },
-            { code: '+49', flag: '🇩🇪', name: 'Germany' },
-            { code: '+39', flag: '🇮🇹', name: 'Italy' },
-            { code: '+34', flag: '🇪🇸', name: 'Spain' },
-            { code: '+31', flag: '🇳🇱', name: 'Netherlands' },
-            { code: '+41', flag: '🇨🇭', name: 'Switzerland' },
-            { code: '+46', flag: '🇸🇪', name: 'Sweden' },
-            { code: '+47', flag: '🇳🇴', name: 'Norway' },
-            { code: '+45', flag: '🇩🇰', name: 'Denmark' },
-            { code: '+358', flag: '🇫🇮', name: 'Finland' },
-            { code: '+32', flag: '🇧🇪', name: 'Belgium' },
-            { code: '+43', flag: '🇦🇹', name: 'Austria' },
-            { code: '+351', flag: '🇵🇹', name: 'Portugal' },
-            { code: '+353', flag: '🇮🇪', name: 'Ireland' },
-            { code: '+30', flag: '🇬🇷', name: 'Greece' },
-            { code: '+48', flag: '🇵🇱', name: 'Poland' },
-            { code: '+420', flag: '🇨🇿', name: 'Czech Republic' },
-            { code: '+36', flag: '🇭🇺', name: 'Hungary' },
-            { code: '+421', flag: '🇸🇰', name: 'Slovakia' },
-            { code: '+386', flag: '🇸🇮', name: 'Slovenia' },
-            { code: '+385', flag: '🇭🇷', name: 'Croatia' },
-            { code: '+381', flag: '🇷🇸', name: 'Serbia' },
-            { code: '+387', flag: '🇧🇦', name: 'Bosnia and Herzegovina' },
-            { code: '+382', flag: '🇲🇪', name: 'Montenegro' },
-            { code: '+389', flag: '🇲🇰', name: 'North Macedonia' },
-            { code: '+355', flag: '🇦🇱', name: 'Albania' },
-            { code: '+90', flag: '🇹🇷', name: 'Turkey' },
-            { code: '+7', flag: '🇷🇺', name: 'Russia' },
-            { code: '+380', flag: '🇺🇦', name: 'Ukraine' },
-            { code: '+375', flag: '🇧🇾', name: 'Belarus' },
-            { code: '+370', flag: '🇱🇹', name: 'Lithuania' },
-            { code: '+371', flag: '🇱🇻', name: 'Latvia' },
-            { code: '+372', flag: '🇪🇪', name: 'Estonia' },
-            { code: '+81', flag: '🇯🇵', name: 'Japan' },
-            { code: '+82', flag: '🇰🇷', name: 'South Korea' },
-            { code: '+86', flag: '🇨🇳', name: 'China' },
-            { code: '+852', flag: '🇭🇰', name: 'Hong Kong' },
-            { code: '+886', flag: '🇹🇼', name: 'Taiwan' },
-            { code: '+65', flag: '🇸🇬', name: 'Singapore' },
-            { code: '+60', flag: '🇲🇾', name: 'Malaysia' },
-            { code: '+66', flag: '🇹🇭', name: 'Thailand' },
-            { code: '+84', flag: '🇻🇳', name: 'Vietnam' },
-            { code: '+62', flag: '🇮🇩', name: 'Indonesia' },
-            { code: '+63', flag: '🇵🇭', name: 'Philippines' },
-            { code: '+91', flag: '🇮🇳', name: 'India' },
-            { code: '+92', flag: '🇵🇰', name: 'Pakistan' },
-            { code: '+880', flag: '🇧🇩', name: 'Bangladesh' },
-            { code: '+94', flag: '🇱🇰', name: 'Sri Lanka' },
-            { code: '+977', flag: '🇳🇵', name: 'Nepal' },
-            { code: '+61', flag: '🇦🇺', name: 'Australia' },
-            { code: '+64', flag: '🇳🇿', name: 'New Zealand' },
-            { code: '+27', flag: '🇿🇦', name: 'South Africa' },
-            { code: '+20', flag: '🇪🇬', name: 'Egypt' },
-            { code: '+212', flag: '🇲🇦', name: 'Morocco' },
-            { code: '+213', flag: '🇩🇿', name: 'Algeria' },
-            { code: '+216', flag: '🇹🇳', name: 'Tunisia' },
-            { code: '+218', flag: '🇱🇾', name: 'Libya' },
-            { code: '+234', flag: '🇳🇬', name: 'Nigeria' },
-            { code: '+254', flag: '🇰🇪', name: 'Kenya' },
-            { code: '+55', flag: '🇧🇷', name: 'Brazil' },
-            { code: '+54', flag: '🇦🇷', name: 'Argentina' },
-            { code: '+56', flag: '🇨🇱', name: 'Chile' },
-            { code: '+57', flag: '🇨🇴', name: 'Colombia' },
-            { code: '+58', flag: '🇻🇪', name: 'Venezuela' },
-            { code: '+51', flag: '🇵🇪', name: 'Peru' },
-            { code: '+593', flag: '🇪🇨', name: 'Ecuador' },
-            { code: '+52', flag: '🇲🇽', name: 'Mexico' }
-        ];
+        this.resendCooldown = 0; // Cooldown for resend button
         
         this.init();
     }
     
     async init() {
+        // Check if user is already logged in
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            console.log('User already logged in, redirecting to dashboard...');
+            window.location.href = '/dashboard/';
+            return;
+        }
+        
         await this.loadConfig();
         this.setupEventListeners();
         this.setupOTPInputs();
-        this.setupCountryCodeDropdown();
+        this.setupPhoneInput();
     }
     
     async loadConfig() {
         try {
             const response = await fetch('/api/config');
             const config = await response.json();
-            this.externalApiBaseUrl = config.externalApiBaseUrl;
-            this.internalApiBaseUrl = config.internalApiBaseUrl;
+            this.externalApiBaseUrl = config.apiBaseUrl || config.externalApiBaseUrl;
+            this.internalApiBaseUrl = config.internalApiBaseUrl || 'http://localhost:3000';
             console.log('Loaded API URLs:', {
                 external: this.externalApiBaseUrl,
                 internal: this.internalApiBaseUrl
@@ -153,18 +89,9 @@ class SignupManager {
             this.updateDisplayName();
         });
         
-        // Country code dropdown
-        document.getElementById('countryCodeBtn').addEventListener('click', () => {
-            this.toggleCountryDropdown();
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('countryDropdown');
-            const button = document.getElementById('countryCodeBtn');
-            if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
+        // Edit email button
+        document.getElementById('editEmailBtn').addEventListener('click', () => {
+            this.goBackToStep1();
         });
     }
     
@@ -271,6 +198,12 @@ class SignupManager {
     async resendOTP() {
         if (!this.userEmail) return;
         
+        // Check if resend button is disabled
+        const resendBtn = document.getElementById('resendOtpBtn');
+        if (resendBtn.disabled) {
+            return; // Don't allow resend if button is disabled
+        }
+        
         if (!this.externalApiBaseUrl) {
             this.showError('otpError', 'Configuration not loaded. Please try again.');
             return;
@@ -364,19 +297,32 @@ class SignupManager {
         
         const formData = this.getRegistrationFormData();
         
+        // Prepare API payload
+        const apiPayload = {
+            email: this.userEmail,
+            password: formData.password,
+            otp_code: this.otpCode,
+            otp_id: this.otpId, // Include OTP ID in case API needs it
+            display_name: formData.displayName,
+            firstname: formData.firstName,
+            lastname: formData.lastName,
+            phone_number: formData.phoneNumber || null
+        };
+        
+        // Log what we're sending to the API
+        console.log('=== REGISTRATION API CALL ===');
+        console.log('API URL:', `${this.externalApiBaseUrl}/v1/auth/register-with-otp`);
+        console.log('Payload being sent:', apiPayload);
+        console.log('OTP Code from verification:', this.otpCode);
+        console.log('User Email:', this.userEmail);
+        console.log('OTP ID:', this.otpId);
+        console.log('===============================');
+        
         this.showLoading('completeRegistrationBtn', 'completeRegistrationText', 'Creating Account...');
         this.hideError('registrationError');
         
         try {
-            const response = await axios.post(`${this.externalApiBaseUrl}/v1/auth/register-with-otp`, {
-                email: this.userEmail,
-                password: formData.password,
-                otp_code: this.otpCode,
-                display_name: formData.displayName,
-                firstname: formData.firstName,
-                lastname: formData.lastName,
-                phone_number: formData.phoneNumber || null
-            });
+            const response = await axios.post(`${this.externalApiBaseUrl}/v1/auth/register-with-otp`, apiPayload);
             
             console.log('Registration Response:', response.data);
             
@@ -397,7 +343,13 @@ class SignupManager {
                 throw new Error(response.data.message || 'Registration failed');
             }
         } catch (error) {
-            console.error('Registration Error:', error);
+            console.error('=== REGISTRATION ERROR ===');
+            console.error('Error object:', error);
+            console.error('Error response:', error.response);
+            console.error('Error response data:', error.response?.data);
+            console.error('Error message:', error.message);
+            console.error('========================');
+            
             const errorMessage = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
             this.showError('registrationError', errorMessage);
         } finally {
@@ -419,6 +371,26 @@ class SignupManager {
         // Update step indicators
         this.updateStepIndicators(stepNumber);
         this.currentStep = stepNumber;
+    }
+    
+    goBackToStep1() {
+        // Clear OTP timer if running
+        this.clearOTPTimer();
+        
+        // Clear OTP inputs
+        document.querySelectorAll('.otp-input').forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
+        });
+        
+        // Hide any error messages
+        this.hideError('otpError');
+        
+        // Go back to step 1
+        this.showStep(1);
+        
+        // Focus on email input
+        document.getElementById('email').focus();
     }
     
     updateStepIndicators(activeStep) {
@@ -447,6 +419,10 @@ class SignupManager {
     startOTPTimer() {
         this.clearOTPTimer();
         
+        // Set resend cooldown (60 seconds)
+        this.resendCooldown = 60;
+        const resendBtn = document.getElementById('resendOtpBtn');
+        
         const updateTimer = () => {
             const minutes = Math.floor(this.otpTimeLeft / 60);
             const seconds = this.otpTimeLeft % 60;
@@ -454,9 +430,25 @@ class SignupManager {
             document.getElementById('otpTimer').textContent = 
                 `${minutes}:${seconds.toString().padStart(2, '0')}`;
             
+            // Handle resend button state (disable for first 60 seconds)
+            if (this.resendCooldown > 0) {
+                resendBtn.disabled = true;
+                resendBtn.textContent = 'Resend OTP';
+                resendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                this.resendCooldown--;
+            } else {
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend OTP';
+                resendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
             if (this.otpTimeLeft <= 0) {
                 this.clearOTPTimer();
                 this.showError('otpError', 'OTP has expired. Please request a new one.');
+                // Enable resend button when OTP expires
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend OTP';
+                resendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 return;
             }
             
@@ -529,14 +521,13 @@ class SignupManager {
     }
     
     getRegistrationFormData() {
-        const phoneNumber = document.getElementById('phoneNumber').value.trim();
-        const fullPhoneNumber = phoneNumber ? `${this.selectedCountry.code}${phoneNumber}` : '';
+        const phoneValues = this.phoneInput.getValue();
         
         return {
             firstName: document.getElementById('firstName').value.trim(),
             lastName: document.getElementById('lastName').value.trim(),
             displayName: document.getElementById('displayName').value.trim(),
-            phoneNumber: fullPhoneNumber,
+            phoneNumber: phoneValues.fullPhoneNumber || null,
             password: document.getElementById('password').value
         };
     }
@@ -635,72 +626,18 @@ class SignupManager {
         }, 5000);
     }
     
-    setupCountryCodeDropdown() {
-        this.renderCountryOptions();
-        
-        // Country search functionality
-        const countrySearch = document.getElementById('countrySearch');
-        countrySearch.addEventListener('input', (e) => {
-            this.filterCountries(e.target.value);
-        });
-    }
-    
-    renderCountryOptions(filteredCountries = null) {
-        const countryList = document.getElementById('countryList');
-        const countries = filteredCountries || this.countries;
-        
-        countryList.innerHTML = '';
-        
-        countries.forEach(country => {
-            const option = document.createElement('div');
-            option.className = 'country-option flex items-center space-x-3 p-2';
-            option.innerHTML = `
-                <span class="text-lg">${country.flag}</span>
-                <span class="flex-1">${country.name}</span>
-                <span class="text-sm text-gray-500">${country.code}</span>
-            `;
-            
-            option.addEventListener('click', () => {
-                this.selectCountry(country);
-            });
-            
-            countryList.appendChild(option);
-        });
-    }
-    
-    filterCountries(searchTerm) {
-        const filtered = this.countries.filter(country => 
-            country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            country.code.includes(searchTerm)
-        );
-        this.renderCountryOptions(filtered);
-    }
-    
-    selectCountry(country) {
-        this.selectedCountry = country;
-        
-        // Update button display
-        document.getElementById('selectedFlag').textContent = country.flag;
-        document.getElementById('selectedCode').textContent = country.code;
-        
-        // Close dropdown
-        document.getElementById('countryDropdown').classList.add('hidden');
-        
-        // Clear search
-        document.getElementById('countrySearch').value = '';
-        this.renderCountryOptions();
-    }
-    
-    toggleCountryDropdown() {
-        const dropdown = document.getElementById('countryDropdown');
-        dropdown.classList.toggle('hidden');
-        
-        if (!dropdown.classList.contains('hidden')) {
-            // Focus search input when opened
-            setTimeout(() => {
-                document.getElementById('countrySearch').focus();
-            }, 100);
-        }
+    setupPhoneInput() {
+        // Initialize the phone number input component
+        this.phoneInput = new PhoneNumberInput({
+            containerId: 'signupPhoneInput',
+            required: false,
+            label: 'Phone Number (Optional)',
+            placeholder: 'Enter phone number',
+            name: 'phoneNumber',
+            countryCode: '+1',
+            countryFlag: '🇺🇸',
+            countryName: 'United States'
+        }).render();
     }
 }
 

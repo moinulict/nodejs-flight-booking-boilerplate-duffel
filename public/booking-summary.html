@@ -303,6 +303,103 @@
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 pt-16 pb-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                <!-- Company Info -->
+                <div>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-plane text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white">Soft Flight</h3>
+                    </div>
+                    <p class="text-gray-400 mb-4">Your trusted partner for hassle-free flight bookings worldwide. Experience seamless travel planning with us.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Quick Links</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/" class="hover:text-orange-500 transition">Home</a></li>
+                        <li><a href="/flights.html" class="hover:text-orange-500 transition">Flights</a></li>
+                        <li><a href="/#about" class="hover:text-orange-500 transition">About Us</a></li>
+                        <li><a href="/#contact" class="hover:text-orange-500 transition">Contact</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Support -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Support</h4>
+                    <ul class="space-y-3">
+                        <li><a href="/dashboard/support" class="hover:text-orange-500 transition">Help Center</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">FAQs</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">How to Book</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Cancellation Policy</a></li>
+                        <li><a href="#" class="hover:text-orange-500 transition">Payment Methods</a></li>
+                        <li><a href="/dashboard/support" class="hover:text-orange-500 transition">Customer Support</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact Info -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">Contact Us</h4>
+                    <ul class="space-y-4">
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-map-marker-alt text-orange-500 mt-1"></i>
+                            <span>123 Flight Street, Aviation City, AC 12345</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-phone text-orange-500 mt-1"></i>
+                            <span>+1 (555) 123-4567</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-envelope text-orange-500 mt-1"></i>
+                            <span>support@softflight.com</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-clock text-orange-500 mt-1"></i>
+                            <span>24/7 Customer Service</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                    <p class="text-gray-400 text-sm">
+                        © 2025 Soft Flight. All rights reserved.
+                    </p>
+                    <div class="flex items-center space-x-6 text-sm">
+                        <a href="#" class="hover:text-orange-500 transition">Privacy</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="#" class="hover:text-orange-500 transition">Terms</a>
+                        <span class="text-gray-600">|</span>
+                        <a href="#" class="hover:text-orange-500 transition">Sitemap</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <script>
         class BookingSummaryManager {
             constructor() {
@@ -603,7 +700,7 @@
                             <!-- Row 1: Title and First Name -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Title <span class="text-red-500">*</span></label>
                                     <select class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-title" required>
                                         <option value="">Select Title</option>
                                         <option value="mr" ${passenger.title === 'mr' ? 'selected' : ''}>Mr</option>
@@ -613,7 +710,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
                                     <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-first-name" 
                                            value="${passenger.given_name || ''}" placeholder="Enter first name" required>
                                 </div>
@@ -622,12 +719,12 @@
                             <!-- Row 2: Last Name and Date of Birth -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name <span class="text-red-500">*</span></label>
                                     <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-last-name" 
                                            value="${passenger.family_name || ''}" placeholder="Enter last name" required>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth <span class="text-red-500">*</span></label>
                                     <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-dob" 
                                            value="${passenger.born_on || ''}" required>
                                 </div>
@@ -636,7 +733,7 @@
                             <!-- Row 3: Gender and Email -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Gender <span class="text-red-500">*</span></label>
                                     <select class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-gender" required>
                                         <option value="">Select Gender</option>
                                         <option value="m" ${passenger.gender === 'm' ? 'selected' : ''}>Male</option>
@@ -1258,6 +1355,7 @@
         async function loadExistingTravellers() {
             try {
                 const token = localStorage.getItem('access_token');
+                console.log('🔑 Access token check:', token ? 'Found' : 'Missing');
                 if (!token) {
                     console.log('❌ No access token found, skipping traveller loading');
                     console.log('💡 Please login first to load saved travellers');
@@ -1265,7 +1363,9 @@
                 }
                 
                 const baseUrl = await getBaseUrl();
+                console.log('🌐 Base URL resolved to:', baseUrl);
                 console.log('🌐 Loading travellers from:', `${baseUrl}/v1/users/travelers`);
+                console.log('🔑 Using Bearer token:', `Bearer ${token.substring(0, 20)}...`);
                 
                 const response = await axios.get(`${baseUrl}/v1/users/travelers`, {
                     headers: {
@@ -1273,7 +1373,9 @@
                     }
                 });
                 
-                console.log('📥 Travellers API response:', response.data);
+                console.log('📥 Raw Travellers API response:', response);
+                console.log('📥 Response data:', response.data);
+                console.log('📥 Response status:', response.status);
                 
                 if (response.data.status === 'true' || response.data.status === true) {
                     // Extract travelers from the API response structure
@@ -1324,14 +1426,21 @@
         // Populate traveller dropdowns after forms are generated
         // Make function globally available
         window.populateTravellerDropdowns = function populateTravellerDropdowns() {
+            console.log('🎯 populateTravellerDropdowns called');
+            console.log('🎯 bookingManager exists:', !!bookingManager);
+            console.log('🎯 bookingData exists:', !!bookingManager?.bookingData);
+            console.log('🎯 passengers exists:', !!bookingManager?.bookingData?.passengers);
+            
             if (!bookingManager || !bookingManager.bookingData || !bookingManager.bookingData.passengers) {
-                console.warn('Booking manager or passengers not ready');
+                console.warn('❌ Booking manager or passengers not ready');
                 return;
             }
             
             const passengers = bookingManager.bookingData.passengers;
-            console.log('Populating dropdowns for passengers:', passengers);
-            console.log('Available travellers:', existingTravellers);
+            console.log('👥 Passengers to process:', passengers.length);
+            console.log('👥 Passenger details:', passengers);
+            console.log('🧳 Available travellers count:', existingTravellers.length);
+            console.log('🧳 Available travellers data:', existingTravellers);
             
             passengers.forEach((passenger, index) => {
                 const select = document.getElementById(`travellerSelect_${index}`);
@@ -1349,8 +1458,10 @@
                         const compatibleTravellers = existingTravellers.filter(traveller => {
                             // Adults can use any adult travellers
                             if (passengerType === 'adult') return traveller.passenger_type === 'adult';
-                            // Children and infants can use child travellers or adult travellers  
-                            return traveller.passenger_type === 'adult' || traveller.passenger_type === 'child';
+                            // Children and infants can use child, infant, or adult travellers  
+                            return traveller.passenger_type === 'adult' || 
+                                   traveller.passenger_type === 'child' || 
+                                   traveller.passenger_type === 'infant';
                         });
                         
                         console.log(`Compatible travellers for passenger ${index}:`, compatibleTravellers);
@@ -1496,8 +1607,7 @@
                 return; // Don't continue with normal page initialization
             }
             
-            // Initialize navigation
-            new NavigationComponent('flights');
+            // Note: Navigation auto-initializes for non-dashboard pages via nav.js
             
             console.log('🔑 Checking access token...');
             const token = localStorage.getItem('access_token');

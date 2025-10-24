@@ -203,6 +203,28 @@
     border-radius: 0.75rem;
     transition: all 0.2s ease;
     font-size: 1rem;
+    height: 3.5rem; /* Consistent height for all inputs */
+    line-height: 1.5;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Specific styling for date inputs to ensure consistency */
+.form-input[type="date"] {
+    height: 3.5rem;
+    padding: 0.75rem 1rem;
+    line-height: 1.5;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Keep the default calendar icon but ensure it doesn't interfere */
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
 }
 
 .form-input:focus {

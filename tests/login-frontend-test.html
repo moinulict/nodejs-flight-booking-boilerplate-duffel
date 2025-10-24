@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Flow Frontend Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        .test-log {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">🧪 Login Flow Frontend Test</h1>
+        
+        <!-- Test Controls -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Controls</h2>
+            <div class="flex space-x-4">
+                <button id="testLoginFlow" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                    Test Complete Login Flow
+                </button>
+                <button id="testApiOnly" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium">
+                    Test API Only
+                </button>
+                <button id="clearLogs" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium">
+                    Clear Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="testResults" class="space-y-2">
+                <div class="text-gray-600">Click "Test Complete Login Flow" to start...</div>
+            </div>
+        </div>
+
+        <!-- Console Logs -->
+        <div class="bg-black rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">Console Logs</h2>
+            <div id="consoleLogs" class="test-log text-green-400 h-96 overflow-y-auto">
+                <div class="text-gray-400">Waiting for test execution...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LoginFlowTester {
+            constructor() {
+                this.results = [];
+                this.setupEventListeners();
+                this.interceptConsole();
+            }
+
+            setupEventListeners() {
+                document.getElementById('testLoginFlow').addEventListener('click', () => {
+                    this.runCompleteLoginTest();
+                });
+
+                document.getElementById('testApiOnly').addEventListener('click', () => {
+                    this.testApiOnly();
+                });
+
+                document.getElementById('clearLogs').addEventListener('click', () => {
+                    this.clearLogs();
+                });
+            }
+
+            interceptConsole() {
+                const originalLog = console.log;
+                const originalError = console.error;
+                const originalWarn = console.warn;
+
+                console.log = (...args) => {
+                    originalLog.apply(console, args);
+                    this.addConsoleLog('log', args.join(' '));
+                };
+
+                console.error = (...args) => {
+                    originalError.apply(console, args);
+                    this.addConsoleLog('error', args.join(' '));
+                };
+
+                console.warn = (...args) => {
+                    originalWarn.apply(console, args);
+                    this.addConsoleLog('warn', args.join(' '));
+                };
+            }
+
+            addConsoleLog(level, message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const color = {
+                    'log': 'text-green-400',
+                    'error': 'text-red-400',
+                    'warn': 'text-yellow-400'
+                }[level];
+
+                const logElement = document.createElement('div');
+                logElement.className = color;
+                logElement.textContent = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+
+                const logsContainer = document.getElementById('consoleLogs');
+                logsContainer.appendChild(logElement);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+
+            addResult(testName, passed, message) {
+                const result = { testName, passed, message, timestamp: new Date() };
+                this.results.push(result);
+
+                const resultElement = document.createElement('div');
+                resultElement.className = `flex items-center space-x-2 p-2 rounded ${passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+                resultElement.innerHTML = `
+                    <span class="text-lg">${passed ? '✅' : '❌'}</span>
+                    <span class="font-medium">${testName}:</span>
+                    <span>${message}</span>
+                `;
+
+                const resultsContainer = document.getElementById('testResults');
+                if (resultsContainer.children[0]?.textContent.includes('Click "Test Complete Login Flow"')) {
+                    resultsContainer.innerHTML = '';
+                }
+                resultsContainer.appendChild(resultElement);
+            }
+
+            clearLogs() {
+                document.getElementById('consoleLogs').innerHTML = '<div class="text-gray-400">Console cleared...</div>';
+                document.getElementById('testResults').innerHTML = '<div class="text-gray-600">Logs cleared. Ready for new test...</div>';
+                this.results = [];
+            }
+
+            async testApiOnly() {
+                console.log('🔍 Testing API endpoint only...');
+                
+                try {
+                    const response = await axios.post('/api/login', {
+                        email: 'engrminul@gmail.com',
+                        password: '12345678'
+                    });
+
+                    console.log('📥 API Response:', response.data);
+                    console.log('📊 Response Status Check:', response.data.status, typeof response.data.status);
+                    
+                    const isSuccess = response.data.status === 'true' || response.data.status === true;
+                    
+                    this.addResult('API Call', response.status === 200, `HTTP ${response.status}`);
+                    this.addResult('API Status', isSuccess, `Status: ${response.data.status} (${typeof response.data.status})`);
+                    this.addResult('Access Token', !!response.data.data?.access_token, response.data.data?.access_token ? 'Present' : 'Missing');
+                    this.addResult('User Data', !!response.data.data?.user, response.data.data?.user ? `Email: ${response.data.data.user.email}` : 'Missing');
+
+                } catch (error) {
+                    console.error('❌ API Test Error:', error);
+                    this.addResult('API Call', false, error.message);
+                }
+            }
+
+            async runCompleteLoginTest() {
+                console.log('🧪 Starting complete login flow test...');
+                this.clearLogs();
+
+                // Test 1: Check if we can make API call
+                await this.testApiOnly();
+
+                // Test 2: Simulate login form submission
+                console.log('🔄 Simulating login form behavior...');
+                
+                try {
+                    // Create a mock login manager to test the exact same logic
+                    const mockLoginManager = {
+                        async login() {
+                            console.log('📤 Mock Login - Starting...');
+                            
+                            const email = 'engrminul@gmail.com';
+                            const password = '12345678';
+
+                            try {
+                                const response = await axios.post('/api/login', {
+                                    email: email,
+                                    password: password
+                                });
+
+                                console.log('🎯 Mock Login Response:', response.data);
+                                console.log('📊 Mock Response Status:', response.data.status, typeof response.data.status);
+                                
+                                if (response.data.status === 'true' || response.data.status === true) {
+                                    // Store user data and tokens
+                                    const { access_token, refresh_token, user } = response.data.data;
+                                    
+                                    console.log('💾 Mock - Storing tokens and user data...');
+                                    localStorage.setItem('access_token', access_token);
+                                    localStorage.setItem('refresh_token', refresh_token);
+                                    localStorage.setItem('user_data', JSON.stringify(user));
+                                    
+                                    console.log('✅ Mock - Tokens stored successfully');
+                                    console.log('🔄 Mock - Would redirect to dashboard now...');
+                                    
+                                    // Check what's in localStorage
+                                    console.log('🔍 localStorage contents:');
+                                    console.log('  - access_token:', localStorage.getItem('access_token') ? 'Present' : 'Missing');
+                                    console.log('  - refresh_token:', localStorage.getItem('refresh_token') ? 'Present' : 'Missing');
+                                    console.log('  - user_data:', localStorage.getItem('user_data') ? 'Present' : 'Missing');
+                                    
+                                    return true;
+                                } else {
+                                    console.log('❌ Mock - Login status not true:', response.data.status);
+                                    throw new Error(response.data.message || 'Login failed');
+                                }
+                            } catch (error) {
+                                console.error('❌ Mock Login Error:', error);
+                                throw error;
+                            }
+                        }
+                    };
+
+                    const success = await mockLoginManager.login();
+                    this.addResult('Login Simulation', success, 'Login logic executed successfully');
+
+                    // Test 3: Check localStorage
+                    const hasToken = !!localStorage.getItem('access_token');
+                    const hasUser = !!localStorage.getItem('user_data');
+                    
+                    this.addResult('localStorage Token', hasToken, hasToken ? 'Access token stored' : 'No token in localStorage');
+                    this.addResult('localStorage User', hasUser, hasUser ? 'User data stored' : 'No user data in localStorage');
+
+                    // Test 4: Test dashboard accessibility
+                    console.log('🔍 Testing dashboard accessibility...');
+                    try {
+                        const dashboardResponse = await axios.get('/dashboard');
+                        this.addResult('Dashboard Access', dashboardResponse.status === 200, `Dashboard returns ${dashboardResponse.status}`);
+                    } catch (dashboardError) {
+                        this.addResult('Dashboard Access', false, `Dashboard error: ${dashboardError.message}`);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Login simulation error:', error);
+                    this.addResult('Login Simulation', false, error.message);
+                }
+
+                // Summary
+                const passed = this.results.filter(r => r.passed).length;
+                const total = this.results.length;
+                console.log(`📊 Test Summary: ${passed}/${total} tests passed`);
+                
+                if (passed === total) {
+                    console.log('✅ All tests passed! Login flow should work correctly.');
+                } else {
+                    console.log('❌ Some tests failed. Check the results above for issues.');
+                }
+            }
+        }
+
+        // Initialize tester when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new LoginFlowTester();
+        });
+    </script>
+</body>
+</html>

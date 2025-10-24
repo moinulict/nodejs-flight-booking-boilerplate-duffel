@@ -1,30 +1,13 @@
-// Login functionality
+// Simplified Login functionality
 class LoginManager {
     constructor() {
-        this.baseUrl = null;
-        this.axiosInstance = null;
-        this.init();
-    }
-
-    async init() {
-        await this.loadConfig();
-        this.setupAxios();
+        console.log('🚀 LoginManager initialized');
         this.setupEventListeners();
     }
 
-    async loadConfig() {
-        try {
-            const response = await fetch('/api/config');
-            const config = await response.json();
-            this.baseUrl = config.apiBaseUrl;
-        } catch (error) {
-            console.error('Failed to load config, using fallback:', error);
-            this.baseUrl = 'https://api.tripzip.ai';
-        }
-    }
-
     setupAxios() {
-        this.axiosInstance = axios.create({
+        // Simple axios setup without complex configuration
+        return axios.create({
             baseURL: 'http://localhost:3000',
             timeout: 10000,
             headers: {
@@ -38,11 +21,39 @@ class LoginManager {
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
+                console.log('🔥 Form submit event triggered');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                this.login();
+                return false;
+            });
+        }
+
+        // Also add click handler to the button as backup
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', (e) => {
+                console.log('🔥 Button click event triggered');
                 e.preventDefault();
                 e.stopPropagation();
                 this.login();
                 return false;
             });
+        }
+
+        // Real-time validation
+        const emailField = document.getElementById('email');
+        const passwordField = document.getElementById('password');
+
+        if (emailField) {
+            emailField.addEventListener('blur', () => this.validateEmail());
+            emailField.addEventListener('input', () => this.clearFieldError('email'));
+        }
+
+        if (passwordField) {
+            passwordField.addEventListener('blur', () => this.validatePassword());
+            passwordField.addEventListener('input', () => this.clearFieldError('password'));
         }
 
         // Password toggle
@@ -63,58 +74,83 @@ class LoginManager {
     }
 
     async login() {
+        // Clear previous errors
+        this.hideError('loginError');
+        this.clearAllFieldErrors();
+
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
 
-        if (!email || !password) {
-            this.showError('loginError', 'Please enter both email and password');
+        console.log('🔍 LOGIN DEBUG - Email field value:', email);
+        console.log('🔍 LOGIN DEBUG - Password field value:', password);
+        console.log('🔍 LOGIN DEBUG - Password length:', password.length);
+
+        // Comprehensive validation
+        const emailValid = this.validateEmail();
+        const passwordValid = this.validatePassword();
+
+        if (!emailValid || !passwordValid) {
+            console.log('❌ LOGIN DEBUG - Validation failed');
+            this.showError('loginError', 'Please fix the errors above');
             return;
         }
 
-        if (!this.axiosInstance) {
-            this.showError('loginError', 'Configuration not loaded. Please try again.');
-            return;
-        }
-
+        console.log('🚀 LOGIN DEBUG - Starting login request...');
         this.showLoading('loginBtn', 'loginText', 'Signing In...');
         this.hideError('loginError');
 
         try {
-            const response = await this.axiosInstance.post('/api/login', {
+            console.log('📤 LOGIN DEBUG - Sending request to /api/login');
+            const axiosInstance = this.setupAxios();
+            const response = await axiosInstance.post('/api/login', {
                 email: email,
                 password: password
             });
 
+            console.log('📥 LOGIN DEBUG - Response received:', response.status);
+            console.log('🎯 Login Response:', response.data);
+            console.log('📊 Response Status:', response.data.status, typeof response.data.status);
+            
             if (response.data.status === 'true' || response.data.status === true) {
                 // Store user data and tokens
                 const { access_token, refresh_token, user } = response.data.data;
                 
+                console.log('💾 Storing tokens and user data...');
                 localStorage.setItem('access_token', access_token);
                 localStorage.setItem('refresh_token', refresh_token);
                 localStorage.setItem('user_data', JSON.stringify(user));
                 
+                console.log('✅ Tokens stored successfully');
+                console.log('🔄 Redirecting to dashboard in 1 second...');
+                
                 this.showSuccess('Login successful! Redirecting...');
                 
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 1000);
+                // Redirect to dashboard immediately for testing
+                console.log('🚀 Redirecting NOW to /dashboard');
+                window.location.href = '/dashboard';
                 
             } else {
+                console.log('❌ Login status not true:', response.data.status);
                 throw new Error(response.data.message || 'Login failed');
             }
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('❌ LOGIN DEBUG - Error occurred:', error);
+            console.error('❌ LOGIN DEBUG - Error response:', error.response?.data);
+            console.error('❌ LOGIN DEBUG - Error status:', error.response?.status);
             
             let errorMessage;
             if (error.response) {
+                console.log('❌ LOGIN DEBUG - Server responded with error');
                 errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
             } else if (error.request) {
+                console.log('❌ LOGIN DEBUG - Network error');
                 errorMessage = 'Network error: Unable to connect to server';
             } else {
+                console.log('❌ LOGIN DEBUG - Other error');
                 errorMessage = error.message || 'Login failed. Please try again.';
             }
             
+            console.log('❌ LOGIN DEBUG - Showing error to user:', errorMessage);
             this.showError('loginError', errorMessage);
         } finally {
             this.hideLoading('loginBtn', 'loginText', 'Sign In');
@@ -132,6 +168,86 @@ class LoginManager {
             passwordField.type = 'password';
             passwordIcon.className = 'fas fa-eye';
         }
+    }
+
+    // Validation Methods
+    validateEmail() {
+        const emailField = document.getElementById('email');
+        const email = emailField.value.trim();
+        
+        if (!email) {
+            this.showFieldError('email', 'Email is required');
+            return false;
+        }
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            this.showFieldError('email', 'Please enter a valid email address');
+            return false;
+        }
+
+        this.clearFieldError('email');
+        return true;
+    }
+
+    validatePassword() {
+        const passwordField = document.getElementById('password');
+        const password = passwordField.value;
+        
+        if (!password) {
+            this.showFieldError('password', 'Password is required');
+            return false;
+        }
+
+        if (password.length < 6) {
+            this.showFieldError('password', 'Password must be at least 6 characters long');
+            return false;
+        }
+
+        this.clearFieldError('password');
+        return true;
+    }
+
+    showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            // Add error styling to field
+            field.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+            field.classList.remove('border-gray-200', 'focus:border-orange-500', 'focus:ring-orange-500');
+            
+            // Find or create error message element
+            let errorElement = document.getElementById(`${fieldId}Error`);
+            if (!errorElement) {
+                errorElement = document.createElement('div');
+                errorElement.id = `${fieldId}Error`;
+                errorElement.className = 'text-red-500 text-sm mt-1';
+                field.parentNode.appendChild(errorElement);
+            }
+            
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+    }
+
+    clearFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            // Remove error styling
+            field.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+            field.classList.add('border-gray-200', 'focus:border-orange-500', 'focus:ring-orange-500');
+            
+            // Hide error message
+            const errorElement = document.getElementById(`${fieldId}Error`);
+            if (errorElement) {
+                errorElement.classList.add('hidden');
+            }
+        }
+    }
+
+    clearAllFieldErrors() {
+        this.clearFieldError('email');
+        this.clearFieldError('password');
     }
 
     // Utility Methods
@@ -198,5 +314,11 @@ class LoginManager {
 
 // Initialize login manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new LoginManager();
+    console.log('🔄 DOM loaded, initializing LoginManager');
+    try {
+        const loginManager = new LoginManager();
+        console.log('✅ LoginManager created successfully');
+    } catch (error) {
+        console.error('❌ Failed to create LoginManager:', error);
+    }
 });

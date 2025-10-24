@@ -30,13 +30,13 @@
                 <div class="mb-8">
                     <div class="flex justify-between items-center">
                         <div>
-                            <h1 class="text-3xl font-bold text-gray-900">My Travellers</h1>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-2">My Travellers</h1>
                             <p class="text-gray-600 mt-2">Manage your saved traveller profiles for faster bookings</p>
                         </div>
                         <button id="addTravellerBtn" class="btn-primary flex items-center space-x-2" 
                                 style="background: linear-gradient(to right, #ea580c, #f97316); color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; border: none; cursor: pointer; font-weight: 500;">
                             <i class="fas fa-plus"></i>
-                            <span>Add New Traveller</span>
+                            <span>Add Traveller</span>
                         </button>
                     </div>
                 </div>
@@ -94,7 +94,7 @@
         <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex justify-between items-center">
-                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-900">Add New Traveller</h3>
+                    <h3 id="modalTitle" class="text-xl font-semibold text-gray-900">Add Traveller</h3>
                     <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -109,7 +109,25 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="title" class="form-label">Title *</label>
+                                                        <label for="travellerType" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Traveller Type <span class="text-red-500">*</span>
+                                </label>
+                        <select id="travellerType" name="travellerType" class="form-input" required>
+                            <option value="">Select Type</option>
+                            <option value="adult">Adult (12+ years)</option>
+                            <option value="child">Child (2-11 years)</option>
+                            <option value="infant">Infant (under 2 years)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dateOfBirth" class="form-label">Date of Birth <span class="text-red-500">*</span></label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
+                        <div id="dateValidationError" class="text-red-500 text-sm mt-1 hidden">Please select a valid date for this traveller type</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="title" class="form-label">Title <span class="text-red-500">*</span></label>
                         <select id="title" name="title" class="form-input" required>
                             <option value="">Select Title</option>
                             <option value="Mr.">Mr.</option>
@@ -121,22 +139,17 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="firstName" class="form-label">First Name *</label>
+                        <label for="firstName" class="form-label">First Name <span class="text-red-500">*</span></label>
                         <input type="text" id="firstName" name="firstName" class="form-input" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="lastName" class="form-label">Last Name *</label>
+                        <label for="lastName" class="form-label">Last Name <span class="text-red-500">*</span></label>
                         <input type="text" id="lastName" name="lastName" class="form-input" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="dateOfBirth" class="form-label">Date of Birth *</label>
-                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="gender" class="form-label">Gender *</label>
+                        <label for="gender" class="form-label">Gender <span class="text-red-500">*</span></label>
                         <select id="gender" name="gender" class="form-input" required>
                             <option value="">Select Gender</option>
                             <option value="male">Male</option>
@@ -151,114 +164,13 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="email" class="form-label">Email Address *</label>
-                        <input type="email" id="email" name="email" class="form-input" required>
+                        <label for="email" class="form-label">Email Address (Optional)</label>
+                        <input type="email" id="email" name="email" class="form-input">
+                        <p class="text-xs text-gray-500 mt-1">Optional for children and infants</p>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="phone" class="form-label">Phone Number *</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <select id="countryCode" name="countryCode" class="country-select" required>
-                                    <option value="">🌍 Code</option>
-                                    <option value="+1" data-search="united states usa america">🇺🇸 +1</option>
-                                    <option value="+1" data-search="canada">🇨🇦 +1</option>
-                                    <option value="+44" data-search="united kingdom uk britain england">🇬🇧 +44</option>
-                                    <option value="+33" data-search="france">🇫🇷 +33</option>
-                                    <option value="+49" data-search="germany deutschland">🇩🇪 +49</option>
-                                    <option value="+39" data-search="italy italia">🇮🇹 +39</option>
-                                    <option value="+34" data-search="spain espana">🇪🇸 +34</option>
-                                    <option value="+31" data-search="netherlands holland">🇳🇱 +31</option>
-                                    <option value="+32" data-search="belgium">🇧🇪 +32</option>
-                                    <option value="+41" data-search="switzerland">🇨🇭 +41</option>
-                                    <option value="+43" data-search="austria">🇦🇹 +43</option>
-                                    <option value="+45" data-search="denmark">🇩🇰 +45</option>
-                                    <option value="+46" data-search="sweden">🇸🇪 +46</option>
-                                    <option value="+47" data-search="norway">🇳🇴 +47</option>
-                                    <option value="+358" data-search="finland">🇫🇮 +358</option>
-                                    <option value="+91" data-search="india">🇮🇳 +91</option>
-                                    <option value="+86" data-search="china">🇨🇳 +86</option>
-                                    <option value="+81" data-search="japan">🇯🇵 +81</option>
-                                    <option value="+82" data-search="south korea korea">🇰🇷 +82</option>
-                                    <option value="+65" data-search="singapore">🇸🇬 +65</option>
-                                    <option value="+60" data-search="malaysia">🇲🇾 +60</option>
-                                    <option value="+66" data-search="thailand">🇹🇭 +66</option>
-                                    <option value="+84" data-search="vietnam">🇻🇳 +84</option>
-                                    <option value="+63" data-search="philippines">🇵🇭 +63</option>
-                                    <option value="+62" data-search="indonesia">🇮🇩 +62</option>
-                                    <option value="+61" data-search="australia">🇦🇺 +61</option>
-                                    <option value="+64" data-search="new zealand">🇳🇿 +64</option>
-                                    <option value="+27" data-search="south africa">🇿🇦 +27</option>
-                                    <option value="+20" data-search="egypt">🇪🇬 +20</option>
-                                    <option value="+971" data-search="united arab emirates uae dubai">🇦🇪 +971</option>
-                                    <option value="+966" data-search="saudi arabia">🇸🇦 +966</option>
-                                    <option value="+974" data-search="qatar">🇶🇦 +974</option>
-                                    <option value="+965" data-search="kuwait">🇰🇼 +965</option>
-                                    <option value="+973" data-search="bahrain">🇧🇭 +973</option>
-                                    <option value="+968" data-search="oman">🇴🇲 +968</option>
-                                    <option value="+880" data-search="bangladesh">🇧🇩 +880</option>
-                                    <option value="+92" data-search="pakistan">🇵🇰 +92</option>
-                                    <option value="+94" data-search="sri lanka">🇱🇰 +94</option>
-                                    <option value="+977" data-search="nepal">🇳🇵 +977</option>
-                                    <option value="+98" data-search="iran">🇮🇷 +98</option>
-                                    <option value="+964" data-search="iraq">🇮🇶 +964</option>
-                                    <option value="+90" data-search="turkey">🇹🇷 +90</option>
-                                    <option value="+7" data-search="russia">🇷🇺 +7</option>
-                                    <option value="+380" data-search="ukraine">🇺🇦 +380</option>
-                                    <option value="+48" data-search="poland">🇵🇱 +48</option>
-                                    <option value="+420" data-search="czech republic">🇨🇿 +420</option>
-                                    <option value="+36" data-search="hungary">🇭🇺 +36</option>
-                                    <option value="+40" data-search="romania">🇷🇴 +40</option>
-                                    <option value="+359" data-search="bulgaria">🇧🇬 +359</option>
-                                    <option value="+385" data-search="croatia">🇭🇷 +385</option>
-                                    <option value="+381" data-search="serbia">🇷🇸 +381</option>
-                                    <option value="+55" data-search="brazil">🇧🇷 +55</option>
-                                    <option value="+52" data-search="mexico">🇲🇽 +52</option>
-                                    <option value="+54" data-search="argentina">🇦🇷 +54</option>
-                                    <option value="+56" data-search="chile">🇨🇱 +56</option>
-                                    <option value="+57" data-search="colombia">🇨🇴 +57</option>
-                                    <option value="+51" data-search="peru">🇵🇪 +51</option>
-                                </select>
-                            </div>
-                            <input type="tel" id="phone" name="phone" class="phone-input" 
-                                   placeholder="Enter phone number" 
-                                   pattern="[0-9\s\-\(\)]{7,15}" 
-                                   title="Please enter a valid phone number (7-15 digits)" required>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Select country code and enter your phone number</p>
-                    </div>
-                    
-                    <!-- Passport Information -->
-                    <div class="md:col-span-2 mt-6">
-                        <h4 class="text-lg font-medium text-gray-900 mb-4">Passport Information</h4>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="passportNumber" class="form-label">Passport Number</label>
-                        <input type="text" id="passportNumber" name="passportNumber" class="form-input">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="passportCountry" class="form-label">Issuing Country</label>
-                        <select id="passportCountry" name="passportCountry" class="form-input">
-                            <option value="">Select Country</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="passportExpiry" class="form-label">Expiry Date</label>
-                        <input type="date" id="passportExpiry" name="passportExpiry" class="form-input">
-                    </div>
-                    
-                    <!-- Traveller Type -->
-                    <div class="form-group">
-                        <label for="travellerType" class="form-label">Traveller Type *</label>
-                        <select id="travellerType" name="travellerType" class="form-input" required>
-                            <option value="">Select Type</option>
-                            <option value="adult">Adult (12+ years)</option>
-                            <option value="child">Child (2-11 years)</option>
-                            <option value="infant">Infant (under 2 years)</option>
-                        </select>
+                    <div class="form-group md:col-span-1">
+                        <div id="travellerPhoneInput" class="w-full"></div>
                     </div>
                 </div>
                 
@@ -303,6 +215,7 @@
     <!-- Scripts -->
     <script src="/components/nav.js"></script>
     <script src="/dashboard/components/sidebar.js"></script>
+    <script src="/components/phone-input.js"></script>
     <script src="/dashboard/travellers.js"></script>
 </body>
 </html>

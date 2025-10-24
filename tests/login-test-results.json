@@ -1,0 +1,148 @@
+{
+  "passed": 14,
+  "failed": 0,
+  "total": 14,
+  "details": [
+    {
+      "test": "Server Health Check",
+      "passed": true,
+      "message": "Server responding with status 200",
+      "data": {
+        "status": 200,
+        "config": {
+          "apiBaseUrl": "https://api.tripzip.ai",
+          "environment": "development",
+          "stripe_publishable_key": "pk_test_51SJZbjRnY8d38HccEDKkjvdExux6xfeJXH747VMV34YDPdEogw5iJT59qg7e1bRgBkHmhi7MynCXP93VOjWTUEAZ00sGsttssf"
+        }
+      },
+      "timestamp": "2025-10-24T05:24:59.290Z"
+    },
+    {
+      "test": "Login Page Access",
+      "passed": true,
+      "message": "Login page loaded: 200, Content-Type: text/html; charset=UTF-8",
+      "data": {
+        "status": 200,
+        "contentType": "text/html; charset=UTF-8"
+      },
+      "timestamp": "2025-10-24T05:24:59.297Z"
+    },
+    {
+      "test": "Login Form Email Field",
+      "passed": true,
+      "message": "Email field found",
+      "data": {
+        "hasEmailField": true
+      },
+      "timestamp": "2025-10-24T05:24:59.301Z"
+    },
+    {
+      "test": "Login Form Password Field",
+      "passed": true,
+      "message": "Password field found",
+      "data": {
+        "hasPasswordField": true
+      },
+      "timestamp": "2025-10-24T05:24:59.301Z"
+    },
+    {
+      "test": "Login Form Element",
+      "passed": true,
+      "message": "Login form found",
+      "data": {
+        "hasLoginForm": true
+      },
+      "timestamp": "2025-10-24T05:24:59.301Z"
+    },
+    {
+      "test": "Login Button",
+      "passed": true,
+      "message": "Login button found",
+      "data": {
+        "hasLoginButton": true
+      },
+      "timestamp": "2025-10-24T05:24:59.301Z"
+    },
+    {
+      "test": "Login JS Script",
+      "passed": true,
+      "message": "login.js script included",
+      "data": {
+        "hasLoginJS": true
+      },
+      "timestamp": "2025-10-24T05:24:59.301Z"
+    },
+    {
+      "test": "Login JS File Access",
+      "passed": true,
+      "message": "login.js accessible: 200",
+      "data": {
+        "status": 200,
+        "contentType": "application/javascript; charset=UTF-8"
+      },
+      "timestamp": "2025-10-24T05:24:59.304Z"
+    },
+    {
+      "test": "External API Direct Access",
+      "passed": true,
+      "message": "Direct API call successful: 200",
+      "data": {
+        "status": 200,
+        "apiStatus": "true",
+        "hasTokens": true
+      },
+      "timestamp": "2025-10-24T05:24:59.866Z"
+    },
+    {
+      "test": "Login API Response",
+      "passed": true,
+      "message": "HTTP Status: 200",
+      "data": {
+        "httpStatus": 200,
+        "apiStatus": "true",
+        "statusType": "string"
+      },
+      "timestamp": "2025-10-24T05:25:00.602Z"
+    },
+    {
+      "test": "Login API Status Field",
+      "passed": true,
+      "message": "API Status: true (string)",
+      "data": {
+        "status": "true",
+        "expected": "true"
+      },
+      "timestamp": "2025-10-24T05:25:00.602Z"
+    },
+    {
+      "test": "Login API Access Token",
+      "passed": true,
+      "message": "Access token present",
+      "data": {
+        "hasToken": true,
+        "tokenLength": 187
+      },
+      "timestamp": "2025-10-24T05:25:00.602Z"
+    },
+    {
+      "test": "Login API User Data",
+      "passed": true,
+      "message": "User data present: engrminul@gmail.com",
+      "data": {
+        "hasUser": true,
+        "userEmail": "engrminul@gmail.com"
+      },
+      "timestamp": "2025-10-24T05:25:00.602Z"
+    },
+    {
+      "test": "Dashboard Page Access",
+      "passed": true,
+      "message": "Dashboard accessible: 200, Content-Type: text/html; charset=UTF-8",
+      "data": {
+        "status": 200,
+        "contentType": "text/html; charset=UTF-8"
+      },
+      "timestamp": "2025-10-24T05:25:00.611Z"
+    }
+  ]
+}

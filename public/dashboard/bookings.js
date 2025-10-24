@@ -1,495 +1,628 @@
-// Bookings Management System
+// My Bookings Management System
 class BookingsManager {
     constructor() {
-        this.bookings = [];
-        this.currentFilter = '';
-        this.selectedBookingId = null;
+        this.allBookings = [];
+        this.currentBookings = [];
+        this.previousBookings = [];
+        this.activeTab = 'current';
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+        this.totalItems = 0;
+        this.expandedBookings = new Set(); // Track expanded flight details
         this.init();
     }
-    
+
     async init() {
         // Initialize navigation and sidebar
         initNavigation();
         initDashboardSidebar('bookings');
-        
-        // Check authentication
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            window.location.href = '/login';
-            return;
-        }
-        
+
         this.setupEventListeners();
         await this.loadBookings();
     }
-    
+
     setupEventListeners() {
-        // Status filter
-        document.getElementById('statusFilter').addEventListener('change', (e) => {
-            this.currentFilter = e.target.value;
-            this.renderBookings();
-        });
-        
-        // Modal controls
-        document.getElementById('closeBookingModal').addEventListener('click', () => {
-            this.closeBookingModal();
-        });
-        
-        document.getElementById('cancelCancelBtn').addEventListener('click', () => {
-            this.closeCancelModal();
-        });
-        
-        document.getElementById('confirmCancelBtn').addEventListener('click', () => {
-            this.cancelBooking();
-        });
-        
-        // Close modals on outside click
-        document.getElementById('bookingModal').addEventListener('click', (e) => {
-            if (e.target.id === 'bookingModal') {
-                this.closeBookingModal();
-            }
-        });
-        
-        document.getElementById('cancelModal').addEventListener('click', (e) => {
-            if (e.target.id === 'cancelModal') {
-                this.closeCancelModal();
-            }
-        });
-    }
-    
-    async loadBookings() {
-        try {
-            const baseUrl = await this.getBaseUrl();
-            const token = localStorage.getItem('access_token');
-            
-            const response = await axios.get(`${baseUrl}/v1/bookings`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+        // Pagination controls
+        const prevPageBtn = document.getElementById('prevPage');
+        const nextPageBtn = document.getElementById('nextPage');
+
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', () => {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.renderBookings();
+                    // Scroll to top of page smoothly
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             });
-            
-            this.bookings = response.data.data || [];
-            this.renderBookings();
-            
-        } catch (error) {
-            console.error('Failed to load bookings:', error);
-            this.hideLoadingState();
-            
-            if (error.response?.status === 401) {
-                this.showToast('Session expired. Please login again.', 'error');
+        }
+
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', () => {
+                const maxPage = Math.ceil(this.totalItems / this.itemsPerPage);
+                if (this.currentPage < maxPage) {
+                    this.currentPage++;
+                    this.renderBookings();
+                    // Scroll to top of page smoothly
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+    }
+
+    async loadBookings(skip = 0, limit = 100) {
+        try {
+            this.showLoadingState();
+
+            // Get authentication token from localStorage
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                console.error('❌ No authentication token found');
+                this.showToast('Please log in to view your bookings', 'error');
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
-            } else {
-                this.showToast('Failed to load bookings', 'error');
+                return;
             }
+
+            console.log('🔑 Using auth token:', token.substring(0, 20) + '...');
+            console.log('📤 Fetching bookings from API...');
+            console.log('🎯 API URL:', `/api/bookings?skip=${skip}&limit=${limit}`);
+
+            const response = await fetch(`/api/bookings?skip=${skip}&limit=${limit}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('📥 API Response Status:', response.status);
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.error('❌ Authentication failed - redirecting to login');
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    localStorage.removeItem('user_data');
+                    this.showToast('Session expired. Please log in again.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('� Full API Response:', JSON.stringify(data, null, 2));
+
+            if (data.status === "true" && data.data && data.data.items) {
+                console.log('✅ Found', data.data.items.length, 'bookings');
+                this.allBookings = data.data.items;
+                this.processBookings();
+                this.renderBookings();
+            } else {
+                console.error('❌ Invalid API response structure:', data);
+                this.hideLoadingState();
+                this.showEmptyState();
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to load bookings:', error);
+            this.hideLoadingState();
+            this.showToast('Failed to load bookings. Please try again.', 'error');
+            this.showEmptyState();
         }
     }
-    
+
+    processBookings() {
+        // Separate bookings into current and previous based on status and date
+        const now = new Date();
+
+        this.currentBookings = this.allBookings.filter(booking => {
+            const status = booking.status?.toLowerCase();
+            return status === 'pending' || status === 'confirmed';
+        });
+
+        this.previousBookings = this.allBookings.filter(booking => {
+            const status = booking.status?.toLowerCase();
+            return status === 'completed' || status === 'cancelled' || status === 'flown';
+        });
+    }
+
+    switchTab(tab) {
+        this.activeTab = tab;
+        this.currentPage = 1; // Reset to first page
+        this.renderBookings();
+    }
+
     renderBookings() {
         this.hideLoadingState();
-        
+
         const container = document.getElementById('bookingsContainer');
         const emptyState = document.getElementById('emptyState');
-        
-        let filteredBookings = this.bookings;
-        if (this.currentFilter) {
-            filteredBookings = this.bookings.filter(booking => 
-                booking.status?.toLowerCase() === this.currentFilter.toLowerCase()
-            );
-        }
-        
-        if (filteredBookings.length === 0) {
+
+        // Show all bookings (no tab filtering)
+        const bookingsToShow = this.allBookings;
+        this.totalItems = bookingsToShow.length;
+
+        if (bookingsToShow.length === 0) {
             container.innerHTML = '';
             emptyState.classList.remove('hidden');
+            const pagination = document.getElementById('pagination');
+            if (pagination) pagination.classList.add('hidden');
             return;
         }
-        
+
         emptyState.classList.add('hidden');
-        
-        container.innerHTML = filteredBookings.map(booking => `
-            <div class="dashboard-card mb-6">
+
+        // Calculate pagination
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const paginatedBookings = bookingsToShow.slice(startIndex, endIndex);
+
+        // Render booking cards
+        container.innerHTML = paginatedBookings.map(booking => this.renderBookingCard(booking)).join('');
+
+        // Update pagination
+        this.updatePagination();
+    }
+
+    renderBookingCard(booking) {
+        const flightDetails = booking.provider_data?.flightDetails || {};
+        const passengers = booking.provider_data?.passengers || [];
+        const isExpanded = this.expandedBookings.has(booking.id);
+
+        // Extract route information
+        const route = flightDetails.route || 'Route not available';
+        const airline = flightDetails.airline || 'Airline not available';
+        const departureTime = flightDetails.departure || booking.created_at;
+
+        // Format amount
+        const amount = booking.provider_data?.amount || (booking.amount_cents / 100);
+        const currency = booking.provider_data?.currency || booking.currency || 'USD';
+
+        return `
+            <div class="flight-card bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200">
                 <div class="p-6">
                     <!-- Booking Header -->
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <div class="flex items-center space-x-3 mb-2">
-                                <h3 class="text-lg font-semibold text-gray-900">
-                                    ${booking.departure_city || 'N/A'} → ${booking.arrival_city || 'N/A'}
-                                </h3>
-                                <span class="status-badge status-${booking.status?.toLowerCase() || 'unknown'}">
-                                    ${this.formatStatus(booking.status)}
-                                </span>
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-4 text-sm text-gray-600">
+                            <span><strong>Booking Id:</strong> ${booking.reference_id}</span>
+                            <span><strong>PNR:</strong> ${this.extractPNR(booking)}</span>
+                        </div>
+                        
+                        <div class="text-right flex items-center space-x-4">
+                            <span class="text-sm text-gray-600">${this.getBookingType(booking)}</span>
+                            <button onclick="bookingsManager.toggleDetails('${booking.id}')" 
+                                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
+                                Download Details
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Flight Details Section -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-bold text-gray-900 mb-4 pb-4 border-b border-dashed border-gray-300">Flight Details</h4>
+                        
+                        <!-- Flight Route -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-4 w-full">
+                                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <img src="/img/airline-icon.png" alt="Airline" class="w-6 h-6" onerror="this.outerHTML='<i class=\\'fas fa-plane text-yellow-600\\'></i>'">
+                                </div>
+                                    <div class="flex items-center justify-between text-lg font-semibold mb-1 flex-1 w-full">
+                                          <span class="flex items-center space-x-2">
+                                            <span>${this.getRouteFromString(route).from}</span>
+                                            <i class="fas fa-plane text-gray-400"></i>
+                                            <span>${this.getRouteFromString(route).to}</span>
+                                        </span>
+                                        <span class="text-sm text-gray-600">${new Date(departureTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                            <span class="text-sm text-gray-600 font-normal">${this.formatTime(departureTime)} - ${this.calculateArrivalTime(departureTime)}</span>
+                                            <span class="text-sm text-gray-600 font-normal">Economy</span>
+                                            <span class="text-sm text-gray-600 font-normal">${this.getPassengerSummary(passengers)}</span>
+                                            <span class="status-badge ${booking.status?.toLowerCase() || 'pending'} text-xs">${this.formatStatus(booking.status)}</span>
+                                    </div>
                             </div>
-                            <div class="flex items-center space-x-4 text-sm text-gray-600">
-                                <span><i class="fas fa-ticket-alt mr-1"></i> ${booking.booking_reference || booking.id}</span>
-                                <span><i class="fas fa-calendar mr-1"></i> ${this.formatDate(booking.departure_date)}</span>
-                                ${booking.total_amount ? `<span><i class="fas fa-dollar-sign mr-1"></i> ${booking.total_amount} ${booking.currency || 'USD'}</span>` : ''}
-                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Summary -->
+                    <div class="flex justify-between items-center pt-4 border-t border-dashed border-gray-300">
+                        <div class="text-lg font-semibold">
+                            Total: ${currency.toUpperCase()} ${amount.toFixed ? amount.toFixed(2) : amount}
                         </div>
                         
                         <div class="flex items-center space-x-2">
-                            <button onclick="bookingsManager.viewBookingDetails('${booking.id}')" 
-                                    class="btn-secondary text-sm">
-                                View Details
+                            <span class="text-sm px-3 py-1 bg-green-100 text-green-800 rounded-full">Paid</span>
+                            <button onclick="bookingsManager.toggleFlightDetails('${booking.id}')" 
+                                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
+                                Flight Details
+                                <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'} ml-2"></i>
                             </button>
-                            ${booking.status?.toLowerCase() === 'confirmed' ? `
-                                <button onclick="bookingsManager.showCancelModal('${booking.id}')" 
-                                        class="text-red-600 hover:text-red-700 text-sm px-3 py-1 rounded">
-                                    Cancel
-                                </button>
-                            ` : ''}
                         </div>
                     </div>
                     
-                    <!-- Flight Information -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <!-- Departure -->
-                        <div class="text-center">
-                            <div class="text-sm text-gray-500 mb-1">Departure</div>
-                            <div class="font-semibold text-lg">${this.formatTime(booking.departure_time)}</div>
-                            <div class="text-sm text-gray-600">${booking.departure_airport || 'N/A'}</div>
-                            <div class="text-xs text-gray-500">${this.formatDate(booking.departure_date)}</div>
-                        </div>
-                        
-                        <!-- Flight Duration -->
-                        <div class="text-center flex flex-col justify-center">
-                            <div class="flex items-center justify-center space-x-2 mb-2">
-                                <div class="w-3 h-3 rounded-full bg-orange-600"></div>
-                                <div class="flex-1 h-0.5 bg-gray-300"></div>
-                                <i class="fas fa-plane text-orange-600"></i>
-                                <div class="flex-1 h-0.5 bg-gray-300"></div>
-                                <div class="w-3 h-3 rounded-full bg-orange-600"></div>
-                            </div>
-                            <div class="text-sm text-gray-600">${booking.duration || 'N/A'}</div>
-                            <div class="text-xs text-gray-500">${booking.stops ? `${booking.stops} stops` : 'Direct'}</div>
-                        </div>
-                        
-                        <!-- Arrival -->
-                        <div class="text-center">
-                            <div class="text-sm text-gray-500 mb-1">Arrival</div>
-                            <div class="font-semibold text-lg">${this.formatTime(booking.arrival_time)}</div>
-                            <div class="text-sm text-gray-600">${booking.arrival_airport || 'N/A'}</div>
-                            <div class="text-xs text-gray-500">${this.formatDate(booking.arrival_date)}</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Passengers -->
-                    ${booking.passengers && booking.passengers.length > 0 ? `
-                        <div class="mt-6 pt-6 border-t border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <div class="text-sm text-gray-600">
-                                    <i class="fas fa-users mr-2"></i>
-                                    ${booking.passengers.length} Passenger${booking.passengers.length > 1 ? 's' : ''}
-                                </div>
-                                <div class="text-sm text-gray-600">
-                                    ${booking.airline ? `<i class="fas fa-plane mr-2"></i>${booking.airline}` : ''}
-                                    ${booking.flight_number ? ` • Flight ${booking.flight_number}` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    async viewBookingDetails(bookingId) {
-        try {
-            const baseUrl = await this.getBaseUrl();
-            const token = localStorage.getItem('access_token');
-            
-            const response = await axios.get(`${baseUrl}/v1/bookings/${bookingId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            const booking = response.data.data;
-            this.renderBookingDetails(booking);
-            this.openBookingModal();
-            
-        } catch (error) {
-            console.error('Failed to load booking details:', error);
-            this.showToast('Failed to load booking details', 'error');
-        }
-    }
-    
-    renderBookingDetails(booking) {
-        const content = document.getElementById('bookingDetailsContent');
-        
-        content.innerHTML = `
-            <!-- Booking Summary -->
-            <div class="mb-8">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">
-                            ${booking.departure_city || 'N/A'} → ${booking.arrival_city || 'N/A'}
-                        </h3>
-                        <div class="flex items-center space-x-4 text-gray-600">
-                            <span class="status-badge status-${booking.status?.toLowerCase() || 'unknown'}">
-                                ${this.formatStatus(booking.status)}
-                            </span>
-                            <span><i class="fas fa-ticket-alt mr-1"></i> ${booking.booking_reference || booking.id}</span>
-                        </div>
-                    </div>
-                    ${booking.total_amount ? `
-                        <div class="text-right">
-                            <div class="text-2xl font-bold text-gray-900">${booking.total_amount} ${booking.currency || 'USD'}</div>
-                            <div class="text-sm text-gray-600">Total Price</div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-            
-            <!-- Flight Details -->
-            <div class="mb-8">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Flight Details</h4>
-                <div class="bg-gray-50 rounded-lg p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h5 class="font-medium text-gray-900 mb-3">Departure</h5>
-                            <div class="space-y-2 text-sm">
-                                <div><strong>Time:</strong> ${this.formatTime(booking.departure_time)}</div>
-                                <div><strong>Date:</strong> ${this.formatDate(booking.departure_date)}</div>
-                                <div><strong>Airport:</strong> ${booking.departure_airport || 'N/A'}</div>
-                                <div><strong>Terminal:</strong> ${booking.departure_terminal || 'TBD'}</div>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h5 class="font-medium text-gray-900 mb-3">Arrival</h5>
-                            <div class="space-y-2 text-sm">
-                                <div><strong>Time:</strong> ${this.formatTime(booking.arrival_time)}</div>
-                                <div><strong>Date:</strong> ${this.formatDate(booking.arrival_date)}</div>
-                                <div><strong>Airport:</strong> ${booking.arrival_airport || 'N/A'}</div>
-                                <div><strong>Terminal:</strong> ${booking.arrival_terminal || 'TBD'}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    ${booking.airline || booking.flight_number ? `
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                ${booking.airline ? `<div><strong>Airline:</strong> ${booking.airline}</div>` : ''}
-                                ${booking.flight_number ? `<div><strong>Flight:</strong> ${booking.flight_number}</div>` : ''}
-                                ${booking.aircraft_type ? `<div><strong>Aircraft:</strong> ${booking.aircraft_type}</div>` : ''}
-                                ${booking.duration ? `<div><strong>Duration:</strong> ${booking.duration}</div>` : ''}
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-            
-            <!-- Passengers -->
-            ${booking.passengers && booking.passengers.length > 0 ? `
-                <div class="mb-8">
-                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Passengers</h4>
-                    <div class="space-y-4">
-                        ${booking.passengers.map((passenger, index) => `
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h5 class="font-medium text-gray-900">${passenger.first_name} ${passenger.last_name}</h5>
-                                        <div class="text-sm text-gray-600 space-y-1 mt-2">
-                                            <div><strong>Type:</strong> ${passenger.type || 'Adult'}</div>
-                                            ${passenger.seat_number ? `<div><strong>Seat:</strong> ${passenger.seat_number}</div>` : ''}
-                                            ${passenger.meal_preference ? `<div><strong>Meal:</strong> ${passenger.meal_preference}</div>` : ''}
-                                        </div>
-                                    </div>
-                                    ${passenger.ticket_number ? `
-                                        <div class="text-sm text-gray-600">
-                                            <strong>Ticket:</strong> ${passenger.ticket_number}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-            
-            <!-- Booking Actions -->
-            <div class="flex justify-between items-center pt-6 border-t border-gray-200">
-                <div class="text-sm text-gray-600">
-                    Booked on ${this.formatDateTime(booking.created_at)}
-                </div>
-                
-                <div class="flex space-x-3">
-                    ${booking.status?.toLowerCase() === 'confirmed' ? `
-                        <button onclick="bookingsManager.downloadTicket('${booking.id}')" 
-                                class="btn-secondary text-sm">
-                            <i class="fas fa-download mr-2"></i>
-                            Download Ticket
-                        </button>
-                        <button onclick="bookingsManager.showCancelModal('${booking.id}')" 
-                                class="btn-danger text-sm">
-                            <i class="fas fa-times mr-2"></i>
-                            Cancel Booking
-                        </button>
-                    ` : ''}
+                    <!-- Expandable Flight Details -->
+                    ${isExpanded ? this.renderExpandedFlightDetails(booking) : ''}
                 </div>
             </div>
         `;
     }
-    
-    openBookingModal() {
-        const modal = document.getElementById('bookingModal');
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+
+    renderExpandedFlightDetails(booking) {
+        const flightDetails = booking.provider_data?.flightDetails || {};
+        const passengers = booking.provider_data?.passengers || [];
+        const route = this.getRouteFromString(flightDetails.route || 'DAC → CXB');
+
+        return `
+            <div class="mt-6 pt-6 border-t border-gray-200 bg-gray-50 rounded-lg p-6">
+                <!-- Flight Details Tabs -->
+                <div class="flex space-x-8 mb-8">
+                    <button class="flight-details-tab active pb-3 text-base font-medium border-b-2 border-red-600 text-black">Flight Details</button>
+                    <button class="flight-details-tab pb-3 text-base font-medium text-gray-500 hover:text-gray-700">Baggage</button>
+                    <button class="flight-details-tab pb-3 text-base font-medium text-gray-500 hover:text-gray-700">Policy</button>
+                </div>
+                
+                <!-- Flight Route Header -->
+                <div class="mb-6">
+                    <div class="flex items-center mb-8">
+                        <div class="w-3 h-3 bg-red-600 rounded-full mr-3"></div>
+                        <h5 class="text-lg font-semibold text-red-600">${route.from} - ${route.to} (Depart)</h5>
+                    </div>
+                    
+                    <!-- Flight Timeline -->
+                    <div class="relative">
+                        <!-- Departure -->
+                        <div class="relative flex items-center mb-8">
+                            <div class="flex items-center w-full">
+                                <!-- Left: Time & Date -->
+                                <div style="width: 35%;" class="text-right pr-6">
+                                    <div class="text-3xl font-bold text-black mb-1">${this.formatTime(flightDetails.departure)}</div>
+                                    <div class="text-sm text-gray-600">${this.formatFullDate(flightDetails.departure)}</div>
+                                </div>
+                                
+                                <!-- Center: Location Icon with Line -->
+                                <div class="flex justify-center relative" style="width: 30%;">
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full border-2 border-white shadow-sm relative z-10"></div>
+                                    <!-- Vertical Line from departure -->
+                                    <div class="absolute w-0.5 bg-gray-300 left-1/2 transform -translate-x-1/2 top-3 h-24 z-0"></div>
+                                </div>
+                                
+                                <!-- Right: Location Details -->
+                                <div style="width: 35%;" class="pl-6">
+                                    <div class="text-lg font-semibold text-black">Departure, ${this.getCityName(route.from)}</div>
+                                    <div class="text-sm text-gray-600">${route.from} - ${this.getAirportName(route.from)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Flight Info in Center -->
+                        <div class="relative flex items-center mb-8">
+                            <div class="flex items-center w-full">
+                                <!-- Left: Economy Class -->
+                                <div style="width: 35%;" class="text-right pr-6">
+                                    <div class="text-red-600 font-semibold">Economy (S)</div>
+                                    <div class="text-sm text-gray-600">2A 441</div>
+                                </div>
+                                
+                                <!-- Center: Airplane Icon -->
+                                <div class="flex justify-center relative" style="width: 30%;">
+                                    <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm relative z-10">
+                                        <i class="fas fa-plane text-yellow-600 text-xs"></i>
+                                    </div>
+                                    <!-- Continue line through airplane -->
+                                    <div class="absolute w-0.5 bg-gray-300 left-1/2 transform -translate-x-1/2 -top-6 h-12 z-0"></div>
+                                    <div class="absolute w-0.5 bg-gray-300 left-1/2 transform -translate-x-1/2 top-6 h-12 z-0"></div>
+                                </div>
+                                
+                                <!-- Right: Airline Info -->
+                                <div style="width: 35%;" class="pl-6">
+                                    <div class="font-semibold text-black">${flightDetails.airline || 'Air Astra'}</div>
+                                    <div class="text-sm text-gray-600">ATR 72</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Arrival -->
+                        <div class="relative flex items-center">
+                            <div class="flex items-center w-full">
+                                <!-- Left: Time & Date -->
+                                <div style="width: 35%;" class="text-right pr-6">
+                                    <div class="text-3xl font-bold text-black mb-1">${this.calculateArrivalTime(flightDetails.departure)}</div>
+                                    <div class="text-sm text-gray-600">${this.formatFullDate(flightDetails.departure)}</div>
+                                </div>
+                                
+                                <!-- Center: Location Icon -->
+                                <div class="flex justify-center relative" style="width: 30%;">
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full border-2 border-white shadow-sm relative z-10"></div>
+                                    <!-- Line coming to arrival -->
+                                    <div class="absolute w-0.5 bg-gray-300 left-1/2 transform -translate-x-1/2 -top-6 h-9 z-0"></div>
+                                </div>
+                                
+                                <!-- Right: Location Details -->
+                                <div style="width: 35%;" class="pl-6">
+                                    <div class="text-lg font-semibold text-black">Arrival, ${this.getCityName(route.to)}</div>
+                                    <div class="text-sm text-gray-600">${route.to} - ${this.getAirportName(route.to)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
-    
-    closeBookingModal() {
-        const modal = document.getElementById('bookingModal');
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
+
+    formatFullDate(dateString) {
+        if (!dateString) return '10 Oct, Friday';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'short',
+            weekday: 'long'
+        });
     }
-    
-    showCancelModal(bookingId) {
-        this.selectedBookingId = bookingId;
-        document.getElementById('cancelModal').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-    
-    closeCancelModal() {
-        document.getElementById('cancelModal').classList.add('hidden');
-        document.body.style.overflow = '';
-        this.selectedBookingId = null;
-    }
-    
-    async cancelBooking() {
-        if (!this.selectedBookingId) return;
-        
-        try {
-            const baseUrl = await this.getBaseUrl();
-            const token = localStorage.getItem('access_token');
-            
-            await axios.delete(`${baseUrl}/v1/bookings/${this.selectedBookingId}/cancel`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            this.showToast('Booking cancelled successfully', 'success');
-            this.closeCancelModal();
-            this.closeBookingModal();
-            await this.loadBookings();
-            
-        } catch (error) {
-            console.error('Failed to cancel booking:', error);
-            this.showToast('Failed to cancel booking', 'error');
-        }
-    }
-    
-    async downloadTicket(bookingId) {
-        try {
-            const baseUrl = await this.getBaseUrl();
-            const token = localStorage.getItem('access_token');
-            
-            const response = await axios.get(`${baseUrl}/v1/bookings/${bookingId}/ticket`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                responseType: 'blob'
-            });
-            
-            // Create download link
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `ticket-${bookingId}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-        } catch (error) {
-            console.error('Failed to download ticket:', error);
-            this.showToast('Failed to download ticket', 'error');
-        }
-    }
-    
-    hideLoadingState() {
-        const loading = document.getElementById('loadingBookings');
-        if (loading) {
-            loading.style.display = 'none';
-        }
-    }
-    
+
+
+
     formatStatus(status) {
         if (!status) return 'Unknown';
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
-    
+
     formatDate(dateString) {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
+        return date.toLocaleDateString('en-US', {
             weekday: 'short',
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     }
-    
+
     formatTime(timeString) {
         if (!timeString) return 'N/A';
         // If it's already in HH:MM format, return as is
         if (/^\d{2}:\d{2}$/.test(timeString)) return timeString;
-        
+
         // If it's a full datetime, extract time
         const date = new Date(timeString);
         if (!isNaN(date.getTime())) {
-            return date.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
                 minute: '2-digit',
-                hour12: false 
+                hour12: false
             });
         }
-        
+
         return timeString;
     }
-    
+
     formatDateTime(dateString) {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
             day: 'numeric',
             hour: 'numeric',
             minute: '2-digit'
         });
     }
-    
-    async getBaseUrl() {
-        try {
-            const response = await fetch('/api/config');
-            const config = await response.json();
-            return config.apiBaseUrl;
-        } catch (error) {
-            return 'https://api.tripzip.ai'; // Fallback
+
+    toggleFlightDetails(bookingId) {
+        if (this.expandedBookings.has(bookingId)) {
+            this.expandedBookings.delete(bookingId);
+        } else {
+            this.expandedBookings.add(bookingId);
+        }
+        this.renderBookings();
+    }
+
+    toggleDetails(bookingId) {
+        console.log('Download details for booking:', bookingId);
+        this.showToast('Download feature coming soon!', 'info');
+    }
+
+    updatePagination() {
+        const pagination = document.getElementById('pagination');
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
+        const pageNumbers = document.getElementById('pageNumbers');
+
+        const totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
+
+        if (totalPages <= 1) {
+            pagination.classList.add('hidden');
+            return;
+        }
+
+        pagination.classList.remove('hidden');
+
+        // Update prev/next buttons
+        prevBtn.disabled = this.currentPage === 1;
+        nextBtn.disabled = this.currentPage === totalPages;
+
+        // Generate page numbers
+        pageNumbers.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= this.currentPage - 2 && i <= this.currentPage + 2)) {
+                const button = document.createElement('button');
+                button.className = `px-3 py-2 text-sm ${i === this.currentPage ? 'bg-red-600 text-white' : 'text-gray-500 bg-white hover:bg-gray-50'} border border-gray-300 rounded-md`;
+                button.textContent = i;
+                button.onclick = () => {
+                    this.currentPage = i;
+                    this.renderBookings();
+                    // Scroll to top of page smoothly
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                pageNumbers.appendChild(button);
+            } else if (i === this.currentPage - 3 || i === this.currentPage + 3) {
+                const span = document.createElement('span');
+                span.className = 'px-2 py-2 text-gray-500';
+                span.textContent = '...';
+                pageNumbers.appendChild(span);
+            }
         }
     }
-    
+
+    showLoadingState() {
+        document.getElementById('loadingBookings').style.display = 'flex';
+        document.getElementById('bookingsContainer').innerHTML = '';
+        document.getElementById('emptyState').classList.add('hidden');
+    }
+
+    hideLoadingState() {
+        document.getElementById('loadingBookings').style.display = 'none';
+    }
+
+    showEmptyState() {
+        document.getElementById('emptyState').classList.remove('hidden');
+        document.getElementById('bookingsContainer').innerHTML = '';
+        document.getElementById('pagination').classList.add('hidden');
+    }
+
+    // Utility methods for data extraction and formatting
+    extractPNR(booking) {
+        return booking.reference_id?.split('-')[1]?.substring(0, 6) || '00H0XU';
+    }
+
+    getBookingType(booking) {
+        return booking.booking_type === 'flight' ? 'OneWay' : booking.booking_type;
+    }
+
+    getRouteFromString(routeString) {
+        const parts = routeString.split('→').map(s => s.trim());
+        return {
+            from: parts[0] || 'DAC',
+            to: parts[1] || 'CXB'
+        };
+    }
+
+    getCityName(code) {
+        const cities = {
+            'DAC': 'Dhaka',
+            'CXB': "Cox's Bazar",
+            'CGP': 'Chittagong',
+            'JSR': 'Jashore',
+            'RJH': 'Rajshahi'
+        };
+        return cities[code] || code;
+    }
+
+    getAirportName(code) {
+        const airports = {
+            'DAC': 'Hazrat Shahjalal International Airport, Bangladesh (TD)',
+            'CXB': "Cox's Bazar Airport, Bangladesh",
+            'CGP': 'Chittagong Airport, Bangladesh',
+            'JSR': 'Jashore Airport, Bangladesh',
+            'RJH': 'Rajshahi Airport, Bangladesh'
+        };
+        return airports[code] || `${code} Airport`;
+    }
+
+    calculateArrivalTime(departureTime) {
+        if (!departureTime) return '08:35';
+
+        const departure = new Date(departureTime);
+        departure.setHours(departure.getHours() + 1, departure.getMinutes() + 5); // Add 1hr 5min
+
+        return departure.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    }
+
+    getPassengerSummary(passengers) {
+        if (!passengers || passengers.length === 0) return '1 Adult';
+
+        const adults = passengers.filter(p => p.type === 'adult' || !p.type).length;
+        const children = passengers.filter(p => p.type === 'child').length;
+
+        let summary = '';
+        if (adults > 0) summary += `${adults} Adult${adults > 1 ? 's' : ''}`;
+        if (children > 0) summary += `${summary ? ', ' : ''}${children} Child${children > 1 ? 'ren' : ''}`;
+
+        return summary || '1 Adult';
+    }
+
+    getBaseUrl() {
+        return 'https://api.tripzip.ai'; // From .env API_BASE_URL
+    }
+
+    formatStatus(status) {
+        if (!status) return 'Pending';
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    formatTime(timeString) {
+        if (!timeString) return '07:30';
+
+        // If it's already in HH:MM format, return as is
+        if (/^\d{2}:\d{2}$/.test(timeString)) return timeString;
+
+        // If it's a full datetime, extract time
+        const date = new Date(timeString);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        return '07:30';
+    }
+
+    formatDateTime(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
         const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600';
-        
-        toast.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md`;
+
+        toast.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md transition-all duration-300`;
         toast.innerHTML = `
             <div class="flex items-center space-x-2">
                 <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
                 <span>${message}</span>
             </div>
         `;
-        
+
         document.body.appendChild(toast);
-        
+
         // Auto remove after 3 seconds
         setTimeout(() => {
             if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
+                toast.classList.add('opacity-0', 'transform', 'translate-x-full');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
             }
         }, 3000);
     }

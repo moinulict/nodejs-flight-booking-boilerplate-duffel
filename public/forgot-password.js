@@ -12,6 +12,14 @@ class ForgotPasswordManager {
     }
     
     async init() {
+        // Check if user is already logged in
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            console.log('User already logged in, redirecting to dashboard...');
+            window.location.href = '/dashboard/';
+            return;
+        }
+        
         await this.loadConfig();
         this.setupEventListeners();
         this.setupOTPInputs();
@@ -55,6 +63,11 @@ class ForgotPasswordManager {
         // Password matching validation
         document.getElementById('confirmNewPassword').addEventListener('input', () => {
             this.validatePasswordMatch();
+        });
+        
+        // Edit email button
+        document.getElementById('editEmailBtn').addEventListener('click', () => {
+            this.goBackToStep1();
         });
     }
     
@@ -261,6 +274,31 @@ class ForgotPasswordManager {
         document.getElementById(`step${stepNumber}`).classList.add('fade-in');
         
         this.currentStep = stepNumber;
+    }
+    
+    goBackToStep1() {
+        // Clear timer if running
+        this.clearResetTimer();
+        
+        // Clear OTP inputs
+        document.querySelectorAll('.otp-input').forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
+        });
+        
+        // Clear password fields
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmNewPassword').value = '';
+        
+        // Hide any error messages
+        this.hideError('resetError');
+        this.hideError('passwordMatchError');
+        
+        // Go back to step 1
+        this.showStep(1);
+        
+        // Focus on email input
+        document.getElementById('forgotEmail').focus();
     }
     
     startResetTimer() {

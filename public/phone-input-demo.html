@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Number Input Component Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .demo-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="demo-section min-h-screen flex items-center justify-center py-12">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-white mb-4">Phone Number Input Component</h1>
+                <p class="text-xl text-white opacity-90">Reusable phone number input with country code selector</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Example 1: Required Phone Input -->
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Required Phone Input</h2>
+                    
+                    <div id="phoneInput1"></div>
+                    
+                    <button onclick="validatePhone1()" 
+                            class="mt-4 w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition font-semibold">
+                        Validate & Get Value
+                    </button>
+                    
+                    <div id="result1" class="mt-4 p-3 bg-gray-100 rounded-lg hidden">
+                        <h4 class="font-semibold text-gray-800 mb-2">Result:</h4>
+                        <pre id="result1Text" class="text-sm text-gray-600"></pre>
+                    </div>
+                </div>
+                
+                <!-- Example 2: Optional Phone Input with Callback -->
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Optional with Live Updates</h2>
+                    
+                    <div id="phoneInput2"></div>
+                    
+                    <div class="mt-4 p-3 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">Live Value:</h4>
+                        <div id="liveResult" class="text-sm text-green-600 font-mono">Type to see updates...</div>
+                    </div>
+                    
+                    <button onclick="clearPhone2()" 
+                            class="mt-4 w-full bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 transition font-semibold">
+                        Clear Input
+                    </button>
+                </div>
+                
+                <!-- Example 3: Pre-filled Phone Input -->
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Pre-filled Example</h2>
+                    
+                    <div id="phoneInput3"></div>
+                    
+                    <button onclick="updatePhone3()" 
+                            class="mt-4 w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition font-semibold">
+                        Update to UK Number
+                    </button>
+                </div>
+                
+                <!-- Example 4: Custom Configuration -->
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Custom Configuration</h2>
+                    
+                    <div id="phoneInput4"></div>
+                    
+                    <button onclick="getPhone4()" 
+                            class="mt-4 w-full bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700 transition font-semibold">
+                        Get Value
+                    </button>
+                    
+                    <div id="result4" class="mt-4 p-3 bg-purple-50 rounded-lg hidden">
+                        <pre id="result4Text" class="text-sm text-purple-600"></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Usage Instructions -->
+            <div class="mt-12 bg-white rounded-2xl shadow-xl p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">How to Use</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">1. Include the Component</h3>
+                        <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>&lt;script src="components/phone-input.js"&gt;&lt;/script&gt;</code></pre>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">2. Create Container Element</h3>
+                        <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>&lt;div id="myPhoneInput"&gt;&lt;/div&gt;</code></pre>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">3. Initialize Component</h3>
+                        <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>const phoneInput = new PhoneNumberInput({
+    containerId: 'myPhoneInput',
+    required: true,
+    label: 'Phone Number',
+    placeholder: 'Enter phone number',
+    onchange: (fullNumber) => {
+        console.log('Phone number changed:', fullNumber);
+    }
+}).render();</code></pre>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">4. Get Values</h3>
+                        <pre class="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto"><code>// Get individual parts
+const countryCode = phoneInput.getCountryCode();
+const phoneNumber = phoneInput.getPhoneNumber();
+const fullNumber = phoneInput.getFullPhoneNumber();
+
+// Get all values at once
+const values = phoneInput.getValue();
+console.log(values); // { countryCode: '+1', phoneNumber: '1234567890', fullPhoneNumber: '+11234567890' }</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="components/phone-input.js"></script>
+    <script>
+        // Example 1: Required phone input
+        const phoneInput1 = new PhoneNumberInput({
+            containerId: 'phoneInput1',
+            required: true,
+            label: 'Business Phone',
+            placeholder: 'Enter your business phone',
+            name: 'businessPhone'
+        }).render();
+
+        function validatePhone1() {
+            const isValid = phoneInput1.validate();
+            const values = phoneInput1.getValue();
+            
+            if (isValid) {
+                phoneInput1.hideError();
+                document.getElementById('result1').classList.remove('hidden');
+                document.getElementById('result1Text').textContent = JSON.stringify(values, null, 2);
+            } else {
+                phoneInput1.showError('Phone number is required');
+                document.getElementById('result1').classList.add('hidden');
+            }
+        }
+
+        // Example 2: Optional with live updates
+        const phoneInput2 = new PhoneNumberInput({
+            containerId: 'phoneInput2',
+            required: false,
+            label: 'Contact Number (Optional)',
+            placeholder: 'Your contact number',
+            onchange: (fullNumber) => {
+                const liveResult = document.getElementById('liveResult');
+                if (fullNumber) {
+                    liveResult.textContent = fullNumber;
+                } else {
+                    liveResult.textContent = 'Type to see updates...';
+                }
+            }
+        }).render();
+
+        function clearPhone2() {
+            phoneInput2.setPhoneNumber('');
+            phoneInput2.setCountry('+1');
+        }
+
+        // Example 3: Pre-filled
+        const phoneInput3 = new PhoneNumberInput({
+            containerId: 'phoneInput3',
+            required: false,
+            label: 'Emergency Contact',
+            value: '1234567890',
+            countryCode: '+1',
+            countryFlag: '🇺🇸',
+            countryName: 'United States'
+        }).render();
+
+        function updatePhone3() {
+            phoneInput3.setValue('+44', '7700900123');
+        }
+
+        // Example 4: Custom configuration
+        const phoneInput4 = new PhoneNumberInput({
+            containerId: 'phoneInput4',
+            required: true,
+            label: 'WhatsApp Number',
+            placeholder: 'Enter WhatsApp number',
+            name: 'whatsapp',
+            countryCode: '+91',
+            countryFlag: '🇮🇳',
+            countryName: 'India'
+        }).render();
+
+        function getPhone4() {
+            const values = phoneInput4.getValue();
+            document.getElementById('result4').classList.remove('hidden');
+            document.getElementById('result4Text').textContent = JSON.stringify(values, null, 2);
+        }
+    </script>
+</body>
+</html>

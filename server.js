@@ -216,18 +216,25 @@ app.get('/api/check-booking-status/:bookingId', async (req, res) => {
 // Proxy endpoint for login to avoid CORS issues
 app.post('/api/login', async (req, res) => {
   try {
-    console.log('🔐 Proxying login request:', req.body.email);
+    const loginUrl = `${EXTERNAL_API_BASE}/v1/auth/login`;
+    console.log('🌐 CALLING API:', loginUrl);
+    console.log('📤 LOGIN REQUEST:', { email: req.body.email, password: '[HIDDEN]' });
     
-    const response = await axios.post(`${EXTERNAL_API_BASE}/v1/auth/login`, {
+    const response = await axios.post(loginUrl, {
       email: req.body.email,
       password: req.body.password
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
-    console.log('✅ Login successful:', response.data.data?.user?.email);
+    console.log('📥 LOGIN RESPONSE:', JSON.stringify(response.data, null, 2));
+    
     res.json(response.data);
     
   } catch (error) {
-    console.error('❌ Login proxy error:', error.response?.data || error.message);
+    console.log('❌ LOGIN ERROR:', error.response?.data || error.message);
     
     if (error.response) {
       res.status(error.response.status).json(error.response.data);
@@ -645,6 +652,70 @@ app.get('/api/payment-status/:payment_intent_id', async (req, res) => {
 });
 
 // Bookings API endpoints
+app.get('/api/bookings', async (req, res) => {
+  try {
+    console.log('🌐 ===== BOOKINGS API REQUEST =====');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('📋 Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('📊 Query params:', req.query);
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ Missing or invalid authorization header');
+      return res.status(401).json({
+        status: 'false',
+        status_code: 401,
+        message: 'Missing or invalid authorization token'
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    console.log('🔑 Bearer token extracted:', token.substring(0, 20) + '...');
+
+    // Extract query parameters
+    const { skip = 0, limit = 100 } = req.query;
+    
+    console.log('📤 Calling TripZip API for bookings...');
+    console.log('🎯 API URL:', `${EXTERNAL_API_BASE}/v1/bookings`);
+    console.log('📊 Parameters: skip=' + skip + ', limit=' + limit);
+
+    const response = await axios.get(`${EXTERNAL_API_BASE}/v1/bookings`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      params: {
+        skip: parseInt(skip),
+        limit: parseInt(limit)
+      }
+    });
+
+    console.log('📥 TripZip API Response Status:', response.status);
+    console.log('📊 TripZip API Response:', JSON.stringify(response.data, null, 2));
+
+    // Forward the response from TripZip API
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('❌ Bookings API Error:', error.message);
+    if (error.response) {
+      console.error('❌ Error Response Status:', error.response.status);
+      console.error('❌ Error Response Data:', JSON.stringify(error.response.data, null, 2));
+      
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      console.error('❌ Network/Other Error:', error);
+      res.status(500).json({
+        status: 'false',
+        status_code: 500,
+        message: 'Failed to fetch bookings',
+        error: error.message
+      });
+    }
+  }
+});
+
+// Legacy endpoint for backward compatibility
 app.get('/v1/bookings', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -882,6 +953,58 @@ async function cancelBooking(bookingId, userEmail) {
   // Mock cancellation logic
   return { success: true };
 }
+
+// Registration API proxy for debugging
+app.post('/api/register-with-otp', async (req, res) => {
+  const API_BASE_URL = process.env.API_BASE_URL || 'https://api.tripzip.ai';
+  
+  console.log('\n=== REGISTRATION API CALL (SERVER SIDE) ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('API URL:', `${API_BASE_URL}/v1/auth/register-with-otp`);
+  console.log('Request Headers:', {
+    'Content-Type': req.headers['content-type'],
+    'User-Agent': req.headers['user-agent'],
+    'Origin': req.headers.origin
+  });
+  console.log('Request Body (Payload):', JSON.stringify(req.body, null, 2));
+  console.log('==========================================');
+
+  try {
+    const response = await axios.post(`${API_BASE_URL}/v1/auth/register-with-otp`, req.body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    console.log('\n=== REGISTRATION API RESPONSE (SERVER SIDE) ===');
+    console.log('Response Status:', response.status);
+    console.log('Response Headers:', response.headers);
+    console.log('Response Body:', JSON.stringify(response.data, null, 2));
+    console.log('===============================================\n');
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.log('\n=== REGISTRATION API ERROR (SERVER SIDE) ===');
+    console.log('Error Status:', error.response?.status);
+    console.log('Error Headers:', error.response?.headers);
+    console.log('Error Response Body:', JSON.stringify(error.response?.data, null, 2));
+    console.log('Error Message:', error.message);
+    console.log('============================================\n');
+
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ 
+        status: 'false',
+        message: 'Network error occurred',
+        error: error.message 
+      });
+    }
+  }
+});
 
 // Config endpoint for frontend
 app.get('/api/config', (req, res) => {

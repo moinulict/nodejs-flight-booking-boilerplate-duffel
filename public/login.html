@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="components/nav.css">
+    <script src="components/nav.js"></script>
     <style>
         .hero-background {
             background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('img/hero-background.jpg');
@@ -36,7 +37,7 @@
     <!-- Navigation will be inserted here by nav.js -->
 
     <!-- Main Content -->
-    <div class="hero-background min-h-screen flex items-center justify-center">
+    <div class="hero-background min-h-screen flex items-center justify-center pt-20">
         <div class="container mx-auto px-4 py-20">
             <div class="max-w-md mx-auto">
                 <!-- Login Card -->
@@ -50,20 +51,20 @@
                     </div>
                     
                     <!-- Login Form -->
-                    <form id="loginForm" onsubmit="return false;">
+                    <div id="loginForm">
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                                <input type="email" id="email" value="engrminul@gmail.com" placeholder="Enter your email" required
-                                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base">
+                                <input type="email" id="email" placeholder="Enter your email"
+                                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base transition-colors">
                             </div>
                             
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                                 <div class="relative">
-                                    <input value="password" type="password" id="password" placeholder="Enter your password" required
-                                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base pr-12">
-                                    <button type="button" id="togglePassword" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700">
+                                    <input type="password" id="password" placeholder="Enter your password"
+                                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-base pr-12 transition-colors">
+                                    <button type="button" id="togglePassword" onclick="togglePassword(); return false;" class="absolute right-4 top-4 text-gray-500 hover:text-gray-700">
                                         <i class="fas fa-eye" id="passwordIcon"></i>
                                     </button>
                                 </div>
@@ -73,16 +74,16 @@
                             <div id="loginError" class="text-red-500 text-sm hidden"></div>
                         </div>
                         
-                        <button type="submit" id="loginBtn" 
+                        <button type="button" id="loginFormBtn" onclick="performLogin(); return false;"
                                 class="w-full mt-6 bg-gradient-to-r from-orange-600 to-orange-500 text-white py-3 rounded-xl hover:from-orange-700 hover:to-orange-600 transition duration-200 font-semibold shadow-lg">
                             <span id="loginText">Sign In</span>
                         </button>
-                    </form>
+                    </div>
                     
                     <div class="mt-6 text-center">
-                        <button id="forgotPasswordBtn" class="text-orange-600 hover:text-orange-700 font-medium text-sm">
+                        <a href="/forgot-password.html" class="text-orange-600 hover:text-orange-700 font-medium text-sm">
                             Forgot your password?
-                        </button>
+                        </a>
                     </div>
                     
                     <hr class="my-6 border-gray-200">
@@ -98,7 +99,153 @@
         </div>
     </div>
 
-    <script src="components/nav.js"></script>
-    <script src="login.js"></script>
+    <script>
+        // Login functionality
+        async function performLogin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Clear previous errors
+            const errorDiv = document.getElementById('loginError');
+            if (errorDiv) {
+                errorDiv.classList.add('hidden');
+            }
+            
+            // Basic validation
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return false;
+            }
+            
+            if (!email.includes('@') || !email.includes('.')) {
+                showError('Please enter a valid email address');
+                return false;
+            }
+            
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return false;
+            }
+            
+            // Show loading
+            const loginBtn = document.getElementById('loginFormBtn');
+            const loginText = document.getElementById('loginText');
+            const originalText = loginText.textContent;
+            
+            loginBtn.disabled = true;
+            loginText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Signing In...';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'true' || data.status === true) {
+                    
+                    // Store tokens
+                    if (data.data && data.data.access_token) {
+                        localStorage.setItem('access_token', data.data.access_token);
+                        localStorage.setItem('refresh_token', data.data.refresh_token);
+                        localStorage.setItem('user_data', JSON.stringify(data.data.user));
+                    }
+                    
+                    showSuccess('Login successful! Redirecting...');
+                    
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                    
+                } else {
+                    showError(data.message || 'Login failed');
+                }
+                
+            } catch (error) {
+                showError('Login failed. Please try again.');
+            } finally {
+                // Reset button
+                loginBtn.disabled = false;
+                loginText.textContent = originalText;
+            }
+            
+            return false; // Ensure no form submission
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('loginError');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function showSuccess(message) {
+            // Create success toast
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 3000);
+        }
+
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const passwordIcon = document.getElementById('passwordIcon');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                passwordIcon.className = 'fas fa-eye-slash';
+            } else {
+                passwordField.type = 'password';
+                passwordIcon.className = 'fas fa-eye';
+            }
+        }
+
+        // Handle Enter key in input fields
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                performLogin();
+                return false;
+            }
+        }
+
+        // Initialize when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already logged in
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                console.log('User already logged in, redirecting to dashboard...');
+                window.location.href = '/dashboard/';
+                return;
+            }
+            
+            // Add enter key support to input fields
+            const emailField = document.getElementById('email');
+            const passwordField = document.getElementById('password');
+            
+            if (emailField) {
+                emailField.addEventListener('keypress', handleKeyPress);
+            }
+            
+            if (passwordField) {
+                passwordField.addEventListener('keypress', handleKeyPress);
+            }
+        });
+    </script>
 </body>
 </html>

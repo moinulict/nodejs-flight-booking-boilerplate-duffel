@@ -3,20 +3,7 @@ class TravellersManager {
     constructor() {
         this.travellers = [];
         this.editingTravellerId = null;
-        this.countries = [
-            'Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Armenia', 'Australia',
-            'Austria', 'Azerbaijan', 'Bahrain', 'Bangladesh', 'Belarus', 'Belgium',
-            'Bolivia', 'Brazil', 'Bulgaria', 'Cambodia', 'Canada', 'Chile', 'China',
-            'Colombia', 'Croatia', 'Czech Republic', 'Denmark', 'Egypt', 'Estonia',
-            'Finland', 'France', 'Georgia', 'Germany', 'Greece', 'Hungary', 'Iceland',
-            'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy',
-            'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait', 'Latvia', 'Lebanon',
-            'Lithuania', 'Luxembourg', 'Malaysia', 'Mexico', 'Netherlands', 'New Zealand',
-            'Norway', 'Pakistan', 'Philippines', 'Poland', 'Portugal', 'Qatar',
-            'Romania', 'Russia', 'Saudi Arabia', 'Singapore', 'South Africa', 'South Korea',
-            'Spain', 'Sri Lanka', 'Sweden', 'Switzerland', 'Thailand', 'Turkey',
-            'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Vietnam'
-        ];
+        this.phoneInput = null;
         this.init();
     }
     
@@ -33,7 +20,6 @@ class TravellersManager {
         }
         
         this.setupEventListeners();
-        this.populateCountryDropdown();
         await this.loadTravellers();
     }
     
@@ -62,6 +48,16 @@ class TravellersManager {
             this.saveTraveller();
         });
         
+        // Date of birth validation based on traveller type
+        document.getElementById('travellerType').addEventListener('change', () => {
+            this.updateDateOfBirthConstraints();
+            this.validateDateOfBirth();
+        });
+        
+        document.getElementById('dateOfBirth').addEventListener('change', () => {
+            this.validateDateOfBirth();
+        });
+        
         // Delete modal controls
         document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
             this.closeDeleteModal();
@@ -82,222 +78,6 @@ class TravellersManager {
             if (e.target.id === 'deleteModal') {
                 this.closeDeleteModal();
             }
-        });
-        
-        // Country code search functionality
-        this.setupCountrySearch();
-    }
-    
-    setupCountrySearch() {
-        // Add search functionality to country code dropdown
-        const countrySelect = document.getElementById('countryCode');
-        if (!countrySelect) return;
-        
-        // Store original options
-        this.originalOptions = Array.from(countrySelect.options).map(option => ({
-            value: option.value,
-            text: option.textContent,
-            searchData: option.getAttribute('data-search') || ''
-        }));
-        
-        // Add search input
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.placeholder = 'Search countries...';
-        searchInput.className = 'country-search-input';
-        searchInput.style.cssText = `
-            width: 100%;
-            padding: 0.5rem;
-            border: none;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 0.875rem;
-            background: #f9fafb;
-        `;
-        
-        // Create custom dropdown
-        this.createCustomDropdown(countrySelect);
-        
-        // Handle search input
-        searchInput.addEventListener('input', (e) => {
-            this.filterCountries(e.target.value);
-        });
-    }
-    
-    createCustomDropdown(originalSelect) {
-        // Hide original select
-        originalSelect.style.display = 'none';
-        
-        // Create custom dropdown container
-        const dropdownContainer = document.createElement('div');
-        dropdownContainer.className = 'custom-country-dropdown';
-        dropdownContainer.style.cssText = `
-            position: relative;
-            width: 120px;
-            min-width: 120px;
-        `;
-        
-        // Create display button
-        const displayButton = document.createElement('button');
-        displayButton.type = 'button';
-        displayButton.className = 'country-select';
-        displayButton.innerHTML = '🌍 Code';
-        displayButton.addEventListener('click', () => {
-            this.toggleDropdown();
-        });
-        
-        // Create dropdown menu
-        const dropdownMenu = document.createElement('div');
-        dropdownMenu.className = 'country-dropdown-menu';
-        dropdownMenu.style.cssText = `
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 2px solid #ea580c;
-            border-radius: 0.5rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            z-index: 9999;
-            max-height: 250px;
-            overflow-y: auto;
-            display: none;
-            margin-top: 2px;
-        `;
-        
-        // Create search input
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.placeholder = 'Search countries...';
-        searchInput.style.cssText = `
-            width: 100%;
-            padding: 0.5rem;
-            border: none;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 0.875rem;
-            background: #f9fafb;
-            outline: none;
-        `;
-        
-        // Create options container
-        const optionsContainer = document.createElement('div');
-        optionsContainer.className = 'country-options';
-        
-        // Add elements to dropdown
-        dropdownMenu.appendChild(searchInput);
-        dropdownMenu.appendChild(optionsContainer);
-        dropdownContainer.appendChild(displayButton);
-        dropdownContainer.appendChild(dropdownMenu);
-        
-        // Replace original select
-        originalSelect.parentNode.insertBefore(dropdownContainer, originalSelect);
-        
-        // Store references
-        this.displayButton = displayButton;
-        this.dropdownMenu = dropdownMenu;
-        this.searchInput = searchInput;
-        this.optionsContainer = optionsContainer;
-        this.originalSelect = originalSelect;
-        
-        // Populate options
-        this.populateDropdownOptions();
-        
-        // Add event listeners
-        searchInput.addEventListener('input', (e) => {
-            this.filterCountries(e.target.value);
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!dropdownContainer.contains(e.target)) {
-                this.closeDropdown();
-            }
-        });
-    }
-    
-    populateDropdownOptions() {
-        this.optionsContainer.innerHTML = '';
-        
-        this.originalOptions.forEach(option => {
-            if (option.value === '') return; // Skip empty option
-            
-            const optionElement = document.createElement('div');
-            optionElement.className = 'country-option';
-            optionElement.innerHTML = option.text;
-            optionElement.style.cssText = `
-                padding: 0.5rem;
-                cursor: pointer;
-                font-size: 0.875rem;
-                transition: background-color 0.2s;
-            `;
-            
-            optionElement.addEventListener('mouseenter', () => {
-                optionElement.style.backgroundColor = '#f3f4f6';
-            });
-            
-            optionElement.addEventListener('mouseleave', () => {
-                optionElement.style.backgroundColor = 'transparent';
-            });
-            
-            optionElement.addEventListener('click', () => {
-                this.selectCountry(option.value, option.text);
-            });
-            
-            this.optionsContainer.appendChild(optionElement);
-        });
-    }
-    
-    filterCountries(searchTerm) {
-        const options = this.optionsContainer.querySelectorAll('.country-option');
-        const term = searchTerm.toLowerCase();
-        
-        options.forEach((option, index) => {
-            const optionData = this.originalOptions[index + 1]; // +1 to skip empty option
-            if (!optionData) return;
-            
-            const searchText = `${optionData.text} ${optionData.searchData}`.toLowerCase();
-            const isVisible = searchText.includes(term);
-            
-            option.style.display = isVisible ? 'block' : 'none';
-        });
-    }
-    
-    selectCountry(value, text) {
-        this.originalSelect.value = value;
-        this.displayButton.innerHTML = text;
-        this.closeDropdown();
-        
-        // Trigger change event
-        const event = new Event('change', { bubbles: true });
-        this.originalSelect.dispatchEvent(event);
-    }
-    
-    toggleDropdown() {
-        const isOpen = this.dropdownMenu.style.display === 'block';
-        if (isOpen) {
-            this.closeDropdown();
-        } else {
-            this.openDropdown();
-        }
-    }
-    
-    openDropdown() {
-        this.dropdownMenu.style.display = 'block';
-        this.searchInput.focus();
-        this.searchInput.value = '';
-        this.filterCountries('');
-    }
-    
-    closeDropdown() {
-        this.dropdownMenu.style.display = 'none';
-    }
-    
-    populateCountryDropdown() {
-        const select = document.getElementById('passportCountry');
-        this.countries.forEach(country => {
-            const option = document.createElement('option');
-            option.value = country;
-            option.textContent = country;
-            select.appendChild(option);
         });
     }
     
@@ -391,10 +171,10 @@ class TravellersManager {
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${traveller.email}</div>
+                    <div class="text-sm text-gray-900">${traveller.email || '-'}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${traveller.phone_number}</div>
+                    <div class="text-sm text-gray-900">${traveller.phone_number || '-'}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -433,6 +213,9 @@ class TravellersManager {
         
         title.textContent = isViewOnly ? 'View Traveller' : (traveller ? 'Edit Traveller' : 'Add New Traveller');
         
+        // Initialize phone input component
+        this.setupPhoneInput();
+        
         if (traveller) {
             // Populate form with traveller data (using API response format)
             const titleField = document.getElementById('title');
@@ -441,11 +224,6 @@ class TravellersManager {
             const dateOfBirthField = document.getElementById('dateOfBirth');
             const genderField = document.getElementById('gender');
             const emailField = document.getElementById('email');
-            const countryCodeField = document.getElementById('countryCode');
-            const phoneField = document.getElementById('phone');
-            const passportNumberField = document.getElementById('passportNumber');
-            const passportCountryField = document.getElementById('passportCountry');
-            const passportExpiryField = document.getElementById('passportExpiry');
             const travellerTypeField = document.getElementById('travellerType');
             
             if (titleField) titleField.value = traveller.title || '';
@@ -454,11 +232,13 @@ class TravellersManager {
             if (dateOfBirthField) dateOfBirthField.value = traveller.date_of_birth || '';
             if (genderField) genderField.value = traveller.gender || '';
             if (emailField) emailField.value = traveller.email || '';
+            if (travellerTypeField) travellerTypeField.value = traveller.passenger_type || '';
             
-            // Split phone number into country code and phone
-            if (traveller.phone_number) {
+            // Set phone number in phone input component
+            if (traveller.phone_number && this.phoneInput) {
+                // Parse phone number into country code and number
                 const phoneNumber = traveller.phone_number;
-                let countryCode = '';
+                let countryCode = '+1';
                 let phone = phoneNumber;
                 
                 // Common country codes to check
@@ -473,17 +253,8 @@ class TravellersManager {
                     }
                 }
                 
-                if (countryCodeField) countryCodeField.value = countryCode;
-                if (phoneField) phoneField.value = phone;
-            } else {
-                if (countryCodeField) countryCodeField.value = '';
-                if (phoneField) phoneField.value = '';
+                this.phoneInput.setValue(countryCode, phone);
             }
-            
-            if (passportNumberField) passportNumberField.value = traveller.passport_number || '';
-            if (passportCountryField) passportCountryField.value = traveller.passport_country || '';
-            if (passportExpiryField) passportExpiryField.value = traveller.passport_expiry_date || '';
-            if (travellerTypeField) travellerTypeField.value = traveller.passenger_type || '';
             
             // Make fields read-only if in view mode
             const inputs = form.querySelectorAll('input, select, textarea');
@@ -516,16 +287,126 @@ class TravellersManager {
         document.body.style.overflow = 'hidden';
     }
     
+    setupPhoneInput() {
+        // Initialize or re-initialize the phone number input component
+        this.phoneInput = new PhoneNumberInput({
+            containerId: 'travellerPhoneInput',
+            required: false,
+            label: 'Phone Number (Optional)',
+            placeholder: 'Enter phone number',
+            name: 'phoneNumber',
+            countryCode: '+1',
+            countryFlag: '🇺🇸',
+            countryName: 'United States'
+        }).render();
+    }
+    
+    updateDateOfBirthConstraints() {
+        const travellerType = document.getElementById('travellerType').value;
+        const dateOfBirthField = document.getElementById('dateOfBirth');
+        const today = new Date();
+        
+        if (!travellerType) {
+            // Reset constraints
+            dateOfBirthField.removeAttribute('min');
+            dateOfBirthField.removeAttribute('max');
+            return;
+        }
+        
+        let minDate, maxDate;
+        
+        switch (travellerType) {
+            case 'adult':
+                // Adults: 12 years or older (no upper limit for practical purposes)
+                maxDate = new Date(today.getFullYear() - 12, today.getMonth(), today.getDate());
+                minDate = new Date(today.getFullYear() - 100, today.getMonth(), today.getDate()); // Reasonable upper age limit
+                break;
+            case 'child':
+                // Children: 2-11 years old
+                minDate = new Date(today.getFullYear() - 11, today.getMonth(), today.getDate());
+                maxDate = new Date(today.getFullYear() - 2, today.getMonth(), today.getDate());
+                break;
+            case 'infant':
+                // Infants: under 2 years old (from 2 years ago to today)
+                minDate = new Date(today.getFullYear() - 2, today.getMonth(), today.getDate());
+                maxDate = today; // Today's date
+                break;
+        }
+        
+        if (minDate) {
+            dateOfBirthField.setAttribute('min', minDate.toISOString().split('T')[0]);
+        }
+        if (maxDate) {
+            dateOfBirthField.setAttribute('max', maxDate.toISOString().split('T')[0]);
+        }
+    }
+    
+    validateDateOfBirth() {
+        const travellerType = document.getElementById('travellerType').value;
+        const dateOfBirth = document.getElementById('dateOfBirth').value;
+        const errorElement = document.getElementById('dateValidationError');
+        
+        if (!travellerType || !dateOfBirth) {
+            errorElement.classList.add('hidden');
+            return true;
+        }
+        
+        const birthDate = new Date(dateOfBirth);
+        const today = new Date();
+        const ageInYears = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+        
+        let isValid = true;
+        let errorMessage = '';
+        
+        switch (travellerType) {
+            case 'adult':
+                if (ageInYears < 12) {
+                    isValid = false;
+                    errorMessage = 'Adults must be 12 years or older';
+                }
+                break;
+            case 'child':
+                if (ageInYears < 2 || ageInYears >= 12) {
+                    isValid = false;
+                    errorMessage = 'Children must be between 2-11 years old';
+                }
+                break;
+            case 'infant':
+                if (ageInYears >= 2) {
+                    isValid = false;
+                    errorMessage = 'Infants must be under 2 years old';
+                }
+                break;
+        }
+        
+        if (isValid) {
+            errorElement.classList.add('hidden');
+        } else {
+            errorElement.textContent = errorMessage;
+            errorElement.classList.remove('hidden');
+        }
+        
+        return isValid;
+    }
+    
     closeTravellerModal() {
         const modal = document.getElementById('travellerModal');
         modal.classList.add('hidden');
         document.body.style.overflow = '';
         this.editingTravellerId = null;
+        
+        // Clear phone input component
+        if (this.phoneInput) {
+            this.phoneInput = null;
+        }
     }
     
     async saveTraveller() {
         const form = document.getElementById('travellerForm');
         const formData = new FormData(form);
+        
+        // Get phone number from the phone input component
+        const phoneValues = this.phoneInput ? this.phoneInput.getValue() : { fullPhoneNumber: null };
         
         const travellerData = {
             title: formData.get('title'),
@@ -533,34 +414,33 @@ class TravellersManager {
             last_name: formData.get('lastName'),
             date_of_birth: formData.get('dateOfBirth'),
             gender: formData.get('gender'),
-            email: formData.get('email'),
-            phone_number: formData.get('countryCode') + formData.get('phone'),
-            passport_number: formData.get('passportNumber') || null,
-            passport_country: formData.get('passportCountry') || null,
-            passport_expiry_date: formData.get('passportExpiry') || null,
+            email: formData.get('email') || null, // Optional for children/infants
+            phone_number: phoneValues.fullPhoneNumber || null,
             passenger_type: formData.get('travellerType')
         };
         
         // Validate required fields
-        const requiredFields = ['title', 'first_name', 'last_name', 'date_of_birth', 'gender', 'email', 'passenger_type'];
+        const requiredFields = ['title', 'first_name', 'last_name', 'date_of_birth', 'gender', 'passenger_type'];
         const missingFields = requiredFields.filter(field => !travellerData[field]);
-        
-        // Validate phone number components
-        if (!formData.get('countryCode') || !formData.get('phone')) {
-            this.showToast('Please select country code and enter phone number', 'error');
-            return;
-        }
         
         if (missingFields.length > 0) {
             this.showToast('Please fill in all required fields', 'error');
             return;
         }
         
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(travellerData.email)) {
-            this.showToast('Please enter a valid email address', 'error');
+        // Validate age based on traveller type
+        if (!this.validateDateOfBirth()) {
+            this.showToast('Please check the date of birth for the selected traveller type', 'error');
             return;
+        }
+        
+        // Validate email format if provided
+        if (travellerData.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(travellerData.email)) {
+                this.showToast('Please enter a valid email address', 'error');
+                return;
+            }
         }
         
         // Show loading state
