@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
-  tripzip_booking:
+  flight_booking:
     build: .
-    container_name: tripzip_booking
+    container_name: flight_booking
     ports:
       - "${HOST_PORT:-9000}:3000"
     environment:
@@ -13,3 +11,20 @@ services:
       - .:/app
       - /app/node_modules
     restart: unless-stopped
+    networks:
+      - tripzip_network
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=tripzip_network
+      - traefik.constraint-label=tripzip_network
+      - traefik.http.routers.flights-http.rule=Host(`flights.${DOMAIN_NAME}`) || Host(`www.flights.${DOMAIN_NAME}`)
+      - traefik.http.routers.flights-http.entrypoints=http
+      - traefik.http.routers.flights-http.middlewares=https-redirect
+      - traefik.http.routers.flights-https.rule=Host(`flights.${DOMAIN_NAME}`) || Host(`www.flights.${DOMAIN_NAME}`)
+      - traefik.http.routers.flights-https.entrypoints=https
+      - traefik.http.routers.flights-https.tls=true
+      - traefik.http.routers.flights-https.tls.certresolver=le
+      - traefik.http.services.flights.loadbalancer.server.port=9000
+networks:
+  tripzip_network:
+    external: true
