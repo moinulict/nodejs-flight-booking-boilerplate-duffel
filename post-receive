@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Git bare repository post-receive hook
+# Deploy TripZip Booking application
+
+REPO_DIR="/home/ec2-user/tripzip/booking/git-repo"
+SOURCE_DIR="/home/ec2-user/tripzip/booking/source"
+
+# Checkout latest code to source directory
+git --git-dir=$REPO_DIR --work-tree=$SOURCE_DIR checkout -f
+
+# Navigate to source directory
+cd $SOURCE_DIR
+
+# Install dependencies
+npm install
+
+# Restart Docker container
+docker-compose down
+docker-compose up --build -d
+
+echo "✅ TripZip Booking deployed successfully!"
+echo "🌐 Application running at http://localhost:9000"

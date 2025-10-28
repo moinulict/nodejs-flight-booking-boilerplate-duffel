@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  tripzip_booking:
+    build: .
+    container_name: tripzip_booking
+    ports:
+      - "${HOST_PORT:-9000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
