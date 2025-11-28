@@ -626,71 +626,253 @@ function displayFlights(flights) {
         
         resultsContainer.innerHTML = flights.map(offer => {
             const slice = offer.slices[0];
-            const segment = slice.segments[0];
+            const firstSegment = slice.segments[0];
+            const lastSegment = slice.segments[slice.segments.length - 1];
             
-            const departureTime = moment(segment.departing_at).format('HH:mm');
-            const arrivalTime = moment(segment.arriving_at).format('HH:mm');
+            const departureTime = moment(firstSegment.departing_at).format('HH:mm');
+            const arrivalTime = moment(lastSegment.arriving_at).format('HH:mm');
+            const departureDate = moment(firstSegment.departing_at).format('MMM DD');
+            const arrivalDate = moment(lastSegment.arriving_at).format('MMM DD');
             const duration = moment.duration(slice.duration).humanize();
             
-            const airline = segment.marketing_carrier?.name || segment.operating_carrier?.name || 'Unknown Airline';
-            const flightNumber = segment.marketing_carrier_flight_number || segment.operating_carrier_flight_number;
+            // Calculate stops: number of segments minus 1
+            const numStops = slice.segments.length - 1;
+            const stopInfo = numStops === 0 ? 'Direct' : `${numStops} stop${numStops > 1 ? 's' : ''}`;
             
-            const stopInfo = slice.segments.length > 1 ? `${slice.segments.length - 1} stop${slice.segments.length > 2 ? 's' : ''}` : 'Direct';
+            // Get airline info
+            const airline = firstSegment.marketing_carrier?.name || firstSegment.operating_carrier?.name || 'Unknown Airline';
+            const flightNumber = firstSegment.marketing_carrier_flight_number || firstSegment.operating_carrier_flight_number || '';
+            
+            // Get cabin class
+            const cabinClass = slice.segments[0].passengers?.[0]?.cabin_class_marketing_name || 
+                               slice.segments[0].passengers?.[0]?.cabin_class || 
+                               'Economy';
+            
+            // Generate segment details for the route column
+            const segmentsHtml = slice.segments.map((seg, idx) => {
+                const segDepartTime = moment(seg.departing_at).format('HH:mm');
+                const segArriveTime = moment(seg.arriving_at).format('HH:mm');
+                const segDuration = seg.duration ? moment.duration(seg.duration).humanize() : '';
+                const segAirline = seg.marketing_carrier?.name || seg.operating_carrier?.name || 'Unknown';
+                const segFlightNum = seg.marketing_carrier_flight_number || seg.operating_carrier_flight_number || '';
+                
+                // Calculate layover if not the last segment
+                let layoverHtml = '';
+                if (idx < slice.segments.length - 1) {
+                    const nextSeg = slice.segments[idx + 1];
+                    const layoverMinutes = moment(nextSeg.departing_at).diff(moment(seg.arriving_at), 'minutes');
+                    const layoverHours = Math.floor(layoverMinutes / 60);
+                    const layoverMins = layoverMinutes % 60;
+                    const layoverText = layoverHours > 0 ? `${layoverHours}h ${layoverMins}m` : `${layoverMins}m`;
+                    
+                    layoverHtml = `
+                        <div class="flex items-center py-2 px-3 bg-gray-50 rounded text-xs text-gray-600">
+                            <i class="fas fa-clock mr-2 text-gray-400"></i>
+                            <span>Layover ${layoverText} in ${seg.destination.city_name || seg.destination.name}</span>
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <div class="py-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2 lg:space-x-4 flex-1">
+                                <div class="text-center min-w-[50px] lg:min-w-[60px]">
+                                    <div class="text-sm font-bold text-gray-900">${segDepartTime}</div>
+                                    <div class="text-xs font-semibold text-orange-600">${seg.origin.iata_code}</div>
+                                </div>
+                                
+                                <div class="flex items-center flex-1 px-2 lg:px-3">
+                                    <div class="flex-1 border-t border-gray-300 relative">
+                                        <i class="fas fa-plane text-orange-400 text-xs absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-1"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center min-w-[50px] lg:min-w-[60px]">
+                                    <div class="text-sm font-bold text-gray-900">${segArriveTime}</div>
+                                    <div class="text-xs font-semibold text-orange-600">${seg.destination.iata_code}</div>
+                                </div>
+                                
+                                <div class="text-xs text-gray-500 min-w-[60px] lg:min-w-[80px] hidden lg:block">${segDuration}</div>
+                            </div>
+                            <div class="text-xs text-gray-500 ml-2 lg:ml-3 hidden lg:block">${segAirline} ${segFlightNum}</div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-center mt-1 lg:hidden">${segDuration} • ${segAirline} ${segFlightNum}</div>
+                    </div>
+                    ${layoverHtml}
+                `;
+            }).join('');
             
             return `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4 hover:shadow-lg hover:border-orange-200 transition-all duration-300">
-                    <div class="flex items-center justify-between mb-6">
-                        <!-- Flight Route and Time -->
-                        <div class="flex items-center space-x-8 flex-1">
-                            <div class="text-center">
-                                <div class="text-xl font-bold text-gray-900">${departureTime}</div>
-                                <div class="text-sm font-medium text-gray-600 mt-1">${segment.origin.iata_code}</div>
-                                <div class="text-xs text-gray-500">${segment.origin.city_name || segment.origin.name}</div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 mb-4 hover:shadow-md hover:border-orange-300 transition-all duration-200">
+                    <!-- Mobile: Rows Layout | Desktop: 3 Columns Layout -->
+                    
+                    <!-- Mobile Layout (Stacked Rows) -->
+                    <div class="lg:hidden space-y-4">
+                        <!-- Row 1: Airline -->
+                        <div class="flex items-center space-x-3 pb-4 border-b border-gray-200">
+                            <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                                <i class="fas fa-plane text-white text-lg"></i>
                             </div>
-                            
-                            <div class="flex-1 relative">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-2 bg-orange-400 rounded-full"></div>
-                                    <div class="flex-1 border-t-2 border-dashed border-gray-300 mx-2"></div>
-                                    <div class="w-2 h-2 bg-orange-400 rounded-full"></div>
-                                </div>
-                                <div class="text-center mt-2">
-                                    <div class="text-sm font-medium text-gray-700">${duration}</div>
-                                    <div class="text-xs text-gray-500 mt-1">${stopInfo}</div>
-                                </div>
-                            </div>
-                            
-                            <div class="text-center">
-                                <div class="text-xl font-bold text-gray-900">${arrivalTime}</div>
-                                <div class="text-sm font-medium text-gray-600 mt-1">${segment.destination.iata_code}</div>
-                                <div class="text-xs text-gray-500">${segment.destination.city_name || segment.destination.name}</div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-900 leading-tight">${airline}</div>
+                                <div class="text-xs text-gray-500 mt-1">${flightNumber}</div>
                             </div>
                         </div>
                         
-                        <!-- Price Section -->
-                        <div class="text-right ml-8">
-                            <div class="text-2xl font-bold text-orange-600">${offer.total_currency} ${parseFloat(offer.total_amount).toLocaleString()}</div>
-                            <div class="text-sm text-gray-500 mt-1">per person</div>
+                        <!-- Row 2: Flight Details -->
+                        <div class="pb-4 border-b border-gray-200">
+                            <!-- Main Route Summary -->
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-center flex-shrink-0">
+                                    <div class="text-xl font-bold text-gray-900">${departureTime}</div>
+                                    <div class="text-xs font-semibold text-gray-700 mt-1">${firstSegment.origin.iata_code}</div>
+                                    <div class="text-xs text-gray-400 mt-1">${departureDate}</div>
+                                </div>
+                                
+                                <div class="flex-1 px-2">
+                                    <div class="relative">
+                                        <div class="flex items-center justify-center">
+                                            <div class="flex-1 border-t-2 border-dashed border-gray-300"></div>
+                                            ${numStops > 0 ? `
+                                                ${Array(numStops).fill(0).map(() => `
+                                                    <div class="w-2 h-2 bg-orange-400 rounded-full mx-1"></div>
+                                                    <div class="flex-1 border-t-2 border-dashed border-gray-300"></div>
+                                                `).join('')}
+                                            ` : ''}
+                                        </div>
+                                        <div class="text-center mt-2">
+                                            <div class="text-xs font-medium text-gray-600">${duration}</div>
+                                            <div class="text-xs text-gray-500">${stopInfo}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center flex-shrink-0">
+                                    <div class="text-xl font-bold text-gray-900">${arrivalTime}</div>
+                                    <div class="text-xs font-semibold text-gray-700 mt-1">${lastSegment.destination.iata_code}</div>
+                                    <div class="text-xs text-gray-400 mt-1">${arrivalDate}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detailed Segments (if multiple stops) -->
+                            ${numStops > 0 ? `
+                                <div class="mt-3 pt-3 border-t border-gray-100">
+                                    <div class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide flex items-center">
+                                        <i class="fas fa-route mr-2"></i>
+                                        Flight Details (${slice.segments.length} segments)
+                                    </div>
+                                    <div class="space-y-1">
+                                        ${segmentsHtml}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Row 3: Price & Action -->
+                        <div class="flex items-center justify-between">
+                            <!-- Price -->
+                            <div class="text-left">
+                                <div class="text-xs text-gray-500 mb-1">${cabinClass}</div>
+                                <div class="text-2xl font-bold text-orange-600">${offer.total_currency} ${parseFloat(offer.total_amount).toLocaleString()}</div>
+                                <div class="text-xs text-gray-500 mt-1">per person</div>
+                            </div>
+                            
+                            <!-- Select Button -->
+                            <button onclick="selectFlight('${offer.id}')" 
+                                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2">
+                                <span>Select</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Airline and Action -->
-                    <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 bg-gradient-to-r from-orange-400 to-orange-600 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-plane text-white text-sm"></i>
-                            </div>
-                            <div>
-                                <div class="text-sm font-semibold text-gray-900">${airline}</div>
-                                <div class="text-xs text-gray-500">${flightNumber}</div>
+                    <!-- Desktop Layout (3 Columns) -->
+                    <div class="hidden lg:grid grid-cols-12 gap-6">
+                        <!-- Column 1: Airline (2 cols) -->
+                        <div class="col-span-2">
+                            <div class="flex flex-col items-center justify-center text-center space-y-2">
+                                <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                                    <i class="fas fa-plane text-white text-2xl"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-bold text-gray-900 leading-tight">${airline}</div>
+                                    <div class="text-xs text-gray-500 mt-1">${flightNumber}</div>
+                                </div>
                             </div>
                         </div>
                         
-                        <button onclick="selectFlight('${offer.id}')" 
-                                class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <i class="fas fa-arrow-right mr-2"></i>
-                            Select Flight
-                        </button>
+                        <!-- Column 2: Route & Segments (7 cols) -->
+                        <div class="col-span-7 border-l border-r border-gray-200 px-6">
+                            <!-- Main Route Summary -->
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="text-center flex-shrink-0">
+                                    <div class="text-2xl font-bold text-gray-900">${departureTime}</div>
+                                    <div class="text-sm font-semibold text-gray-700 mt-1">${firstSegment.origin.iata_code}</div>
+                                    <div class="text-xs text-gray-500">${firstSegment.origin.city_name || firstSegment.origin.name}</div>
+                                    <div class="text-xs text-gray-400 mt-1">${departureDate}</div>
+                                </div>
+                                
+                                <div class="flex-1 px-4">
+                                    <div class="relative">
+                                        <div class="flex items-center justify-center">
+                                            <div class="flex-1 border-t-2 border-dashed border-gray-300"></div>
+                                            ${numStops > 0 ? `
+                                                ${Array(numStops).fill(0).map(() => `
+                                                    <div class="w-2 h-2 bg-orange-400 rounded-full mx-1"></div>
+                                                    <div class="flex-1 border-t-2 border-dashed border-gray-300"></div>
+                                                `).join('')}
+                                            ` : ''}
+                                        </div>
+                                        <div class="text-center mt-2">
+                                            <div class="text-xs font-medium text-gray-600">${duration}</div>
+                                            <div class="text-xs text-gray-500">${stopInfo}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center flex-shrink-0">
+                                    <div class="text-2xl font-bold text-gray-900">${arrivalTime}</div>
+                                    <div class="text-sm font-semibold text-gray-700 mt-1">${lastSegment.destination.iata_code}</div>
+                                    <div class="text-xs text-gray-500">${lastSegment.destination.city_name || lastSegment.destination.name}</div>
+                                    <div class="text-xs text-gray-400 mt-1">${arrivalDate}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detailed Segments (if multiple stops) -->
+                            ${numStops > 0 ? `
+                                <div class="mt-4 pt-3 border-t border-gray-100">
+                                    <div class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide flex items-center">
+                                        <i class="fas fa-route mr-2"></i>
+                                        Flight Details (${slice.segments.length} segments)
+                                    </div>
+                                    <div class="space-y-1">
+                                        ${segmentsHtml}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Column 3: Price & Action (3 cols) -->
+                        <div class="col-span-3">
+                            <div class="flex flex-col items-end space-y-4">
+                                <!-- Price -->
+                                <div class="text-right">
+                                    <div class="text-xs text-gray-500 mb-1">${cabinClass}</div>
+                                    <div class="text-3xl font-bold text-orange-600">${offer.total_currency} ${parseFloat(offer.total_amount).toLocaleString()}</div>
+                                    <div class="text-xs text-gray-500 mt-1">per person</div>
+                                </div>
+                                
+                                <!-- Select Button -->
+                                <button onclick="selectFlight('${offer.id}')" 
+                                        class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2">
+                                    <span>Select Flight</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                        
                     </div>
                 </div>
             `;
