@@ -643,7 +643,7 @@ function displayFlights(flights) {
                         <!-- Flight Route and Time -->
                         <div class="flex items-center space-x-8 flex-1">
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-gray-900">${departureTime}</div>
+                                <div class="text-xl font-bold text-gray-900">${departureTime}</div>
                                 <div class="text-sm font-medium text-gray-600 mt-1">${segment.origin.iata_code}</div>
                                 <div class="text-xs text-gray-500">${segment.origin.city_name || segment.origin.name}</div>
                             </div>
@@ -661,7 +661,7 @@ function displayFlights(flights) {
                             </div>
                             
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-gray-900">${arrivalTime}</div>
+                                <div class="text-xl font-bold text-gray-900">${arrivalTime}</div>
                                 <div class="text-sm font-medium text-gray-600 mt-1">${segment.destination.iata_code}</div>
                                 <div class="text-xs text-gray-500">${segment.destination.city_name || segment.destination.name}</div>
                             </div>
@@ -669,7 +669,7 @@ function displayFlights(flights) {
                         
                         <!-- Price Section -->
                         <div class="text-right ml-8">
-                            <div class="text-3xl font-bold text-orange-600">${offer.total_currency} ${parseFloat(offer.total_amount).toLocaleString()}</div>
+                            <div class="text-2xl font-bold text-orange-600">${offer.total_currency} ${parseFloat(offer.total_amount).toLocaleString()}</div>
                             <div class="text-sm text-gray-500 mt-1">per person</div>
                         </div>
                     </div>
@@ -896,6 +896,10 @@ function redirectToBookingSummary(offer) {
     const children = parseInt(document.getElementById('childrenCount')?.textContent) || 0;
     const infants = parseInt(document.getElementById('infantsCount')?.textContent) || 0;
     
+    // Clear any existing booking data before storing new one
+    localStorage.removeItem('pending_booking_data');
+    console.log('🧹 Cleared old booking data');
+    
     // CRITICAL: Get passenger IDs from the offer - these are required for Duffel booking
     const passengersFromOffer = offer.passengers || [];
     console.log('👥 Passengers from selected offer (with IDs):', passengersFromOffer);
@@ -905,6 +909,7 @@ function redirectToBookingSummary(offer) {
         offer_id: offer.id,
         total_amount: offer.total_amount,
         total_currency: offer.total_currency,
+        offer: offer, // Store complete offer for detailed display
         flightDetails: {
             route: `${offer.slices[0].segments[0].origin.iata_code} → ${offer.slices[0].segments[0].destination.iata_code}`,
             airline: offer.slices[0].segments[0].marketing_carrier?.name || offer.slices[0].segments[0].operating_carrier?.name || 'Unknown',
@@ -925,6 +930,11 @@ function redirectToBookingSummary(offer) {
     
     // Store the current URL for the back button
     localStorage.setItem('original_search_url', window.location.href);
+    
+    // Start the booking timer - store the start timestamp
+    const timerStartTime = Date.now();
+    localStorage.setItem('booking_timer_start', timerStartTime.toString());
+    console.log('⏰ Booking timer started at:', new Date(timerStartTime).toISOString());
     
     console.log('✅ Booking data saved, redirecting to summary page...');
     
@@ -1406,6 +1416,7 @@ async function confirmPaymentAndBook(paymentIntentId, bookingData) {
             // Clean up
             localStorage.removeItem('pending_booking_data');
             localStorage.removeItem('payment_intent_id');
+            localStorage.removeItem('booking_timer_start'); // Clear the booking timer
             document.getElementById('paymentModal').remove();
             
             // Show success message and redirect to dashboard

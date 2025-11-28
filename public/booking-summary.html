@@ -113,6 +113,33 @@
                 `<div class="country-option px-3 py-2 hover:bg-gray-50 cursor-pointer" data-code="${country.code}" data-name="${country.name}">${country.display}</div>`
             ).join('');
         };
+
+        // Global nationality data - will be loaded from API
+        window.GLOBAL_NATIONALITIES = [];
+
+        // Load nationalities on page load
+        window.loadNationalities = async function() {
+            try {
+                const response = await axios.get('/api/countries');
+                if (response.data.success) {
+                    window.GLOBAL_NATIONALITIES = response.data.data;
+                    console.log('Loaded', window.GLOBAL_NATIONALITIES.length, 'nationalities');
+                }
+            } catch (error) {
+                console.error('Failed to load nationalities:', error);
+            }
+        };
+
+        // Search nationalities
+        window.searchNationalities = function(query) {
+            if (!query) return window.GLOBAL_NATIONALITIES;
+            const lowerQuery = query.toLowerCase();
+            return window.GLOBAL_NATIONALITIES.filter(country => 
+                country.name.toLowerCase().includes(lowerQuery) ||
+                country.nationality.toLowerCase().includes(lowerQuery) ||
+                country.code.toLowerCase().includes(lowerQuery)
+            );
+        };
     </script>
     <link rel="stylesheet" href="components/nav.css">
     <script src="components/nav.js"></script>
@@ -207,198 +234,235 @@
     </div>
 
     <div class="container mx-auto px-4 py-8">
-        <div class="">
+        <!-- Two Column Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- Flight Details Card -->
-            <div class="bg-white rounded-lg shadow-lg mb-6">
-                <div class="border-b border-gray-200 px-6 py-4">
-                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                        </svg>
-                        Flight Details
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <!-- Flight Details Loader -->
-                    <div id="flight-details-loader" class="section-loader">
-                        <div class="section-spinner"></div>
-                        <span class="ml-3 text-gray-600">Loading flight details...</span>
-                    </div>
-                    
-                    <div id="flight-details-content" class="space-y-4 hidden">
-                        <!-- Flight details will be populated here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Passenger Information Card -->
-            <div class="bg-white rounded-lg shadow-lg mb-6">
-                <div class="border-b border-gray-200 px-6 py-4">
-                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        Passenger Information
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <!-- Passenger Forms Loader -->
-                    <div id="passenger-forms-loader" class="section-loader">
-                        <div class="section-spinner"></div>
-                        <span class="ml-3 text-gray-600">Loading passenger forms...</span>
-                    </div>
-                    
-                    <div id="passenger-forms-container" class="hidden">
-                        <!-- Passenger forms will be populated here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Price Breakdown Card -->
-            <div class="bg-white rounded-lg shadow-lg mb-6">
-                <div class="border-b border-gray-200 px-6 py-4">
-                    <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                        </svg>
-                        Price Summary
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <!-- Price Details Loader -->
-                    <div id="price-details-loader" class="section-loader">
-                        <div class="section-spinner"></div>
-                        <span class="ml-3 text-gray-600">Loading price summary...</span>
-                    </div>
-                    
-                    <div id="price-details-content" class="hidden">
-                        <!-- Price details will be populated here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-between">
-                <button id="back-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                    Back to Edit
-                </button>
+            <!-- Left Column - Passenger Information (Scrollable) -->
+            <div class="lg:col-span-2 space-y-6">
                 
-                <button id="proceed-payment-btn" class="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                    </svg>
-                    Proceed to Payment
-                    <div id="payment-loading" class="hidden ml-2">
-                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <!-- Passenger Information Card -->
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="border-b border-gray-200 px-6 py-4">
+                        <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Passenger Information
+                        </h2>
                     </div>
-                </button>
+                    <div class="p-6">
+                        <!-- Passenger Forms Loader -->
+                        <div id="passenger-forms-loader" class="section-loader">
+                            <div class="section-spinner"></div>
+                            <span class="ml-3 text-gray-600">Loading passenger forms...</span>
+                        </div>
+                        
+                        <div id="passenger-forms-container" class="hidden">
+                            <!-- Passenger forms will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-between">
+                    <button id="back-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        Back to Edit
+                    </button>
+                    
+                    <button id="proceed-payment-btn" class="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                        Proceed to Payment
+                        <div id="payment-loading" class="hidden ml-2">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        </div>
+                    </button>
+                </div>
             </div>
+
+            <!-- Right Column - Fixed (Timer, Flight Details, Price Summary) -->
+            <div class="lg:col-span-1">
+                <div class="lg:sticky lg:top-20 space-y-6">
+                    
+                    <!-- Booking Timer -->
+                    <div id="booking-timer-container"></div>
+                    
+                    <!-- Flight Details Card -->
+                    <div class="bg-white rounded-lg shadow-lg">
+                        <div class="border-b border-gray-200 px-4 py-3">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                    </svg>
+                                    Flight Details
+                                </h2>
+                                <button id="view-flight-details-btn" class="text-orange-600 hover:text-orange-700 text-sm font-semibold transition duration-200">
+                                    Details →
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <!-- Flight Details Loader -->
+                            <div id="flight-details-loader" class="section-loader">
+                                <div class="section-spinner"></div>
+                                <span class="ml-3 text-gray-600 text-sm">Loading...</span>
+                            </div>
+                            
+                            <div id="flight-details-content" class="space-y-3 hidden">
+                                <!-- Flight details will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Breakdown Card -->
+                    <div class="bg-white rounded-lg shadow-lg">
+                        <div class="border-b border-gray-200 px-4 py-3">
+                            <h2 class="text-lg font-bold text-gray-800 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                Price Summary
+                            </h2>
+                        </div>
+                        <div class="p-4">
+                            <!-- Price Details Loader -->
+                            <div id="price-details-loader" class="section-loader">
+                                <div class="section-spinner"></div>
+                                <span class="ml-3 text-gray-600 text-sm">Loading...</span>
+                            </div>
+                            
+                            <div id="price-details-content" class="hidden">
+                                <!-- Price details will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
 
             <!-- Messages -->
             <div id="messages" class="mt-6"></div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-300 pt-16 pb-8 mt-12">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-                <!-- Company Info -->
-                <div>
-                    <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-plane text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-2xl font-bold text-white">Soft Flight</h3>
-                    </div>
-                    <p class="text-gray-400 mb-4">Your trusted partner for hassle-free flight bookings worldwide. Experience seamless travel planning with us.</p>
-                    <div class="flex space-x-4">
-                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition">
-                            <i class="fab fa-linkedin-in"></i>
-                        </a>
+    <!-- Timer Expired Modal -->
+    <div id="timerExpiredModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fadeIn">
+            <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5 text-center">
+                <div class="flex justify-center mb-3">
+                    <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+                        <svg class="w-10 h-10 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
+                        </svg>
                     </div>
                 </div>
-                
-                <!-- Quick Links -->
-                <div>
-                    <h4 class="text-lg font-bold text-white mb-6">Quick Links</h4>
-                    <ul class="space-y-3">
-                        <li><a href="/" class="hover:text-orange-500 transition">Home</a></li>
-                        <li><a href="/flights.html" class="hover:text-orange-500 transition">Flights</a></li>
-                        <li><a href="/#about" class="hover:text-orange-500 transition">About Us</a></li>
-                        <li><a href="/#contact" class="hover:text-orange-500 transition">Contact</a></li>
-                        <li><a href="#" class="hover:text-orange-500 transition">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-orange-500 transition">Terms & Conditions</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Support -->
-                <div>
-                    <h4 class="text-lg font-bold text-white mb-6">Support</h4>
-                    <ul class="space-y-3">
-                        <li><a href="/dashboard/support" class="hover:text-orange-500 transition">Help Center</a></li>
-                        <li><a href="#" class="hover:text-orange-500 transition">FAQs</a></li>
-                        <li><a href="#" class="hover:text-orange-500 transition">How to Book</a></li>
-                        <li><a href="#" class="hover:text-orange-500 transition">Cancellation Policy</a></li>
-                        <li><a href="#" class="hover:text-orange-500 transition">Payment Methods</a></li>
-                        <li><a href="/dashboard/support" class="hover:text-orange-500 transition">Customer Support</a></li>
-                    </ul>
-                </div>
-                
-                <!-- Contact Info -->
-                <div>
-                    <h4 class="text-lg font-bold text-white mb-6">Contact Us</h4>
-                    <ul class="space-y-4">
-                        <li class="flex items-start space-x-3">
-                            <i class="fas fa-map-marker-alt text-orange-500 mt-1"></i>
-                            <span>123 Flight Street, Aviation City, AC 12345</span>
-                        </li>
-                        <li class="flex items-start space-x-3">
-                            <i class="fas fa-phone text-orange-500 mt-1"></i>
-                            <span>+1 (555) 123-4567</span>
-                        </li>
-                        <li class="flex items-start space-x-3">
-                            <i class="fas fa-envelope text-orange-500 mt-1"></i>
-                            <span>support@softflight.com</span>
-                        </li>
-                        <li class="flex items-start space-x-3">
-                            <i class="fas fa-clock text-orange-500 mt-1"></i>
-                            <span>24/7 Customer Service</span>
-                        </li>
-                    </ul>
-                </div>
+                <h2 class="text-2xl font-bold text-white">Time Expired!</h2>
             </div>
             
-            <!-- Bottom Bar -->
-            <div class="border-t border-gray-800 pt-8">
-                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                    <p class="text-gray-400 text-sm">
-                        © 2025 Soft Flight. All rights reserved.
-                    </p>
-                    <div class="flex items-center space-x-6 text-sm">
-                        <a href="#" class="hover:text-orange-500 transition">Privacy</a>
-                        <span class="text-gray-600">|</span>
-                        <a href="#" class="hover:text-orange-500 transition">Terms</a>
-                        <span class="text-gray-600">|</span>
-                        <a href="#" class="hover:text-orange-500 transition">Sitemap</a>
-                    </div>
+            <div class="p-8 text-center">
+                <p class="text-gray-700 text-lg mb-6">
+                    Your booking time has expired. Please search for flights again to start a new booking.
+                </p>
+                
+                <button id="goToHomeBtn" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-4 px-6 rounded-xl transition duration-300 flex items-center justify-center shadow-lg">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    Go to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flight Details Modal -->
+    <div id="flightDetailsModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-fadeIn flex flex-col">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                    </svg>
+                    Flight Details
+                </h2>
+                <button id="closeFlightDetailsModal" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="overflow-y-auto flex-1 custom-scrollbar">
+                <div id="flightDetailsModalContent" class="p-6">
+                    <!-- Content will be populated by JavaScript -->
                 </div>
             </div>
         </div>
-    </footer>
+    </div>
+    
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        /* Custom scrollbar for modal */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ff9800;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #f57c00;
+        }
+
+        /* Nationality dropdown custom scrollbar */
+        .nationality-dropdown-menu::-webkit-scrollbar {
+            width: 8px;
+        }
+        .nationality-dropdown-menu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .nationality-dropdown-menu::-webkit-scrollbar-thumb {
+            background: #ff9800;
+            border-radius: 10px;
+        }
+        .nationality-dropdown-menu::-webkit-scrollbar-thumb:hover {
+            background: #f57c00;
+        }
+
+        /* Nationality option hover effect */
+        .nationality-option {
+            transition: background-color 0.2s ease;
+        }
+    </style>
+
+    <!-- Footer -->
+    <footer id="footer-component"></footer>
 
     <script>
         class BookingSummaryManager {
@@ -423,6 +487,8 @@
                 }
                 this.bookingData = JSON.parse(bookingDataStr);
                 console.log('📋 Loaded booking data for summary:', this.bookingData);
+                console.log('🎫 Offer slices count:', this.bookingData.offer?.slices?.length);
+                console.log('🎫 Offer slices:', this.bookingData.offer?.slices);
             }
 
             setupEventListeners() {
@@ -434,6 +500,23 @@
                 // Proceed to payment button
                 document.getElementById('proceed-payment-btn').addEventListener('click', () => {
                     this.proceedToPayment();
+                });
+                
+                // View flight details button
+                document.getElementById('view-flight-details-btn')?.addEventListener('click', () => {
+                    this.showFlightDetailsModal();
+                });
+                
+                // Close modal button
+                document.getElementById('closeFlightDetailsModal')?.addEventListener('click', () => {
+                    this.closeFlightDetailsModal();
+                });
+                
+                // Close modal on background click
+                document.getElementById('flightDetailsModal')?.addEventListener('click', (e) => {
+                    if (e.target.id === 'flightDetailsModal') {
+                        this.closeFlightDetailsModal();
+                    }
                 });
             }
 
@@ -504,48 +587,125 @@
             }
 
             displayFlightDetails() {
-                const { flightDetails } = this.bookingData;
                 const container = document.getElementById('flight-details-content');
                 
                 // Minimal loading delay for UX
                 setTimeout(() => {
                 
-                const departureDate = new Date(flightDetails.departure).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+                // Check if we have the complete offer data
+                const offer = this.bookingData.offer;
                 
-                const departureTime = new Date(flightDetails.departure).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                // Debug: Check what's in offer.slices
+                console.log('🔍 Flight Details - Number of slices:', offer?.slices?.length);
+                console.log('🔍 Flight Details - Slices data:', offer?.slices);
+                
+                if (!offer || !offer.slices) {
+                    // Fallback to basic flight details
+                    const { flightDetails } = this.bookingData;
+                    const departureDate = new Date(flightDetails.departure).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                    
+                    const departureTime = new Date(flightDetails.departure).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
 
-                container.innerHTML = `
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <div class="flex">
-                                <span class="text-gray-600">Route:</span>
-                                <span class="font-semibold text-lg ml-2">${flightDetails.route}</span>
-                            </div>
-                            <div class="flex">
-                                <span class="text-gray-600">Airline:</span>
-                                <span class="font-medium ml-2">${flightDetails.airline}</span>
-                            </div>
+                    container.innerHTML = `
+                        <div class="space-y-2 text-sm">
+                            <div class="font-semibold text-gray-800">${flightDetails.route}</div>
+                            <div class="text-gray-600">${flightDetails.airline}</div>
+                            <div class="text-gray-600">${departureDate} • ${departureTime}</div>
                         </div>
-                        <div class="space-y-3">
-                            <div class="flex">
-                                <span class="text-gray-600">Departure Date:</span>
-                                <span class="font-medium ml-2">${departureDate}</span>
-                            </div>
-                            <div class="flex">
-                                <span class="text-gray-600">Departure Time:</span>
-                                <span class="font-medium ml-2">${departureTime}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // Enhanced display with full offer data
+                    let slicesHtml = '';
+                    
+                    offer.slices.forEach((slice, sliceIndex) => {
+                        const isRoundTrip = offer.slices.length > 1;
+                        const sliceLabel = isRoundTrip ? (sliceIndex === 0 ? 'Outbound' : 'Return') : '';
+                        
+                        slice.segments.forEach((segment, segIndex) => {
+                            const departureTime = new Date(segment.departing_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                            
+                            const arrivalTime = new Date(segment.arriving_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                            
+                            const departureDate = new Date(segment.departing_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                            
+                            const airline = segment.marketing_carrier?.name || segment.operating_carrier?.name || 'Unknown';
+                            const flightNumber = segment.marketing_carrier_flight_number || segment.operating_carrier_flight_number || '';
+                            
+                            // Calculate duration - handle multiple formats
+                            let durationText = '';
+                            if (segment.duration) {
+                                // If duration is a string (ISO format like "PT1H5M")
+                                if (typeof segment.duration === 'string') {
+                                    const match = segment.duration.match(/PT(\d+H)?(\d+M)?/);
+                                    if (match) {
+                                        const hours = match[1] ? parseInt(match[1]) : 0;
+                                        const minutes = match[2] ? parseInt(match[2]) : 0;
+                                        durationText = `${hours}h ${minutes}m`;
+                                    }
+                                } else {
+                                    // If duration is in minutes (number)
+                                    const hours = Math.floor(segment.duration / 60);
+                                    const minutes = segment.duration % 60;
+                                    durationText = `${hours}h ${minutes}m`;
+                                }
+                            }
+                            
+                            // Fallback: calculate from departure and arrival times if duration is missing
+                            if (!durationText) {
+                                const depDate = new Date(segment.departing_at);
+                                const arrDate = new Date(segment.arriving_at);
+                                const durationMs = arrDate.getTime() - depDate.getTime();
+                                const totalMinutes = Math.floor(durationMs / 60000);
+                                const hours = Math.floor(totalMinutes / 60);
+                                const minutes = totalMinutes % 60;
+                                durationText = `${hours}h ${minutes}m`;
+                            }
+                            
+                            slicesHtml += `
+                                ${sliceLabel && segIndex === 0 ? `<div class="text-xs font-semibold text-orange-600 mb-2">${sliceLabel}</div>` : ''}
+                                <div class="border-b border-gray-100 pb-3 mb-3">
+                                    <div class="text-xs text-gray-500 mb-1">${departureDate}</div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="text-sm font-bold text-gray-800">${segment.origin.iata_code}</div>
+                                        <div class="flex-1 mx-2 border-t border-gray-300 relative">
+                                            <svg class="w-3 h-3 text-orange-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="text-sm font-bold text-gray-800">${segment.destination.iata_code}</div>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <div class="text-gray-600">${departureTime}</div>
+                                        <div class="text-gray-500">${durationText}</div>
+                                        <div class="text-gray-600">${arrivalTime}</div>
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        <div>${airline} ${flightNumber}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    });
+                    
+                    container.innerHTML = `<div class="space-y-2">${slicesHtml}</div>`;
+                }
                 
                 // Show flight details section after content is loaded
                 LoaderManager.showSection('flight-details');
@@ -574,7 +734,8 @@
                         email: '',
                         phone_number: '',
                         born_on: '',
-                        gender: '', // Required by Duffel API
+                        gender: '', // Required by Duffel API (auto-set from title)
+                        nationality: '', // Required field
                         
                         // Preserve any additional Duffel fields
                         age: passenger.age || null,
@@ -596,7 +757,8 @@
                             email: '',
                             phone_number: '',
                             born_on: '',
-                            gender: '' // Required by Duffel API
+                            gender: '', // Required by Duffel API (auto-set from title)
+                            nationality: '' // Required field
                         });
                     }
                     
@@ -612,7 +774,8 @@
                             email: '',
                             phone_number: '',
                             born_on: '',
-                            gender: '' // Required by Duffel API
+                            gender: '', // Required by Duffel API (auto-set from title)
+                            nationality: '' // Required field
                         });
                     }
                     
@@ -628,7 +791,8 @@
                             email: '',
                             phone_number: '',
                             born_on: '',
-                            gender: '' // Required by Duffel API
+                            gender: '', // Required by Duffel API (auto-set from title)
+                            nationality: '' // Required field
                         });
                     }
                 }
@@ -697,61 +861,94 @@
 
                         <!-- Compact Two-Column Form Layout -->
                         <div class="space-y-4">
-                            <!-- Row 1: Title and First Name -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Title <span class="text-red-500">*</span></label>
-                                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-title" required>
-                                        <option value="">Select Title</option>
-                                        <option value="mr" ${passenger.title === 'mr' ? 'selected' : ''}>Mr</option>
-                                        <option value="ms" ${passenger.title === 'ms' ? 'selected' : ''}>Ms</option>
-                                        <option value="mrs" ${passenger.title === 'mrs' ? 'selected' : ''}>Mrs</option>
-                                        <option value="mstr" ${passenger.title === 'mstr' ? 'selected' : ''}>Master</option>
-                                    </select>
+                            <!-- Row 1: Title (Radio Buttons) -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-3">Title <span class="text-red-500">*</span></label>
+                                <div class="flex flex-wrap gap-4">
+                                    ${passenger.type === 'adult' ? `
+                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                            <input type="radio" name="title_${index}" value="mr" class="passenger-title w-4 h-4 text-orange-500 focus:ring-orange-500" ${passenger.title === 'mr' ? 'checked' : ''} required>
+                                            <span class="text-gray-700">Mr.</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                            <input type="radio" name="title_${index}" value="mrs" class="passenger-title w-4 h-4 text-orange-500 focus:ring-orange-500" ${passenger.title === 'mrs' ? 'checked' : ''} required>
+                                            <span class="text-gray-700">Mrs.</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                            <input type="radio" name="title_${index}" value="ms" class="passenger-title w-4 h-4 text-orange-500 focus:ring-orange-500" ${passenger.title === 'ms' ? 'checked' : ''} required>
+                                            <span class="text-gray-700">Ms.</span>
+                                        </label>
+                                    ` : `
+                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                            <input type="radio" name="title_${index}" value="mstr" class="passenger-title w-4 h-4 text-orange-500 focus:ring-orange-500" ${passenger.title === 'mstr' ? 'checked' : ''} required>
+                                            <span class="text-gray-700">Mstr.</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                            <input type="radio" name="title_${index}" value="miss" class="passenger-title w-4 h-4 text-orange-500 focus:ring-orange-500" ${passenger.title === 'miss' ? 'checked' : ''} required>
+                                            <span class="text-gray-700">Miss.</span>
+                                        </label>
+                                    `}
                                 </div>
+                            </div>
+
+                            <!-- Row 2: First Name and Last Name -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">First Name <span class="text-red-500">*</span></label>
                                     <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-first-name" 
                                            value="${passenger.given_name || ''}" placeholder="Enter first name" required>
                                 </div>
-                            </div>
-
-                            <!-- Row 2: Last Name and Date of Birth -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Last Name <span class="text-red-500">*</span></label>
                                     <input type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-last-name" 
                                            value="${passenger.family_name || ''}" placeholder="Enter last name" required>
                                 </div>
+                            </div>
+
+                            <!-- Row 3: Date of Birth and Nationality -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Date of Birth <span class="text-red-500">*</span></label>
                                     <input type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-dob" 
                                            value="${passenger.born_on || ''}" required>
                                 </div>
-                            </div>
-
-                            <!-- Row 3: Gender and Email -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Gender <span class="text-red-500">*</span></label>
-                                    <select class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-gender" required>
-                                        <option value="">Select Gender</option>
-                                        <option value="m" ${passenger.gender === 'm' ? 'selected' : ''}>Male</option>
-                                        <option value="f" ${passenger.gender === 'f' ? 'selected' : ''}>Female</option>
-                                    </select>
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nationality <span class="text-red-500">*</span></label>
+                                    <div class="relative nationality-search-dropdown">
+                                        <input type="text" 
+                                               class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-nationality-search" 
+                                               placeholder="🌍 Search country..." 
+                                               value="${passenger.nationality || ''}"
+                                               autocomplete="off">
+                                        <input type="hidden" class="passenger-nationality" value="${passenger.nationality || ''}" required>
+                                        <div class="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden nationality-dropdown-menu">
+                                            <!-- Dropdown will be populated dynamically -->
+                                        </div>
+                                    </div>
                                 </div>
-                                <div ${passenger.type === 'child' ? 'style="display:none"' : ''} class="passenger-email-field">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email ${passenger.type !== 'child' ? '*' : ''}</label>
+                            </div>
+                            
+                            <!-- Hidden Gender Field (Auto-set from title) -->
+                            <input type="hidden" class="passenger-gender" value="${passenger.gender || ''}">
+
+                            <!-- Row 4: Email and Phone Number -->
+                            ${passenger.type === 'child' ? `
+                                <!-- Email Only (Full Width) for Children -->
+                                <div class="passenger-email-field">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email ${index === 0 && passenger.type === 'adult' ? '<span class="text-red-500">*</span>' : ''}</label>
                                     <input type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-email" 
-                                           value="${passenger.email || ''}" placeholder="Enter email address" ${passenger.type !== 'child' ? 'required' : ''}>
+                                           value="${passenger.email || ''}" placeholder="Enter email address" ${index === 0 && passenger.type === 'adult' ? 'required' : ''}>
                                 </div>
-                            </div>
-
-                            <!-- Row 4: Phone Number with Country Code -->
-                            <div ${passenger.type === 'child' ? 'style="display:none"' : ''} class="passenger-phone-field">
+                            ` : `
+                                <!-- Email and Phone (Two Columns) for Adults and Infants -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number ${passenger.type !== 'child' ? '*' : ''}</label>
+                                    <div class="passenger-email-field">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Email ${index === 0 && passenger.type === 'adult' ? '<span class="text-red-500">*</span>' : ''}</label>
+                                        <input type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 passenger-email" 
+                                               value="${passenger.email || ''}" placeholder="Enter email address" ${index === 0 && passenger.type === 'adult' ? 'required' : ''}>
+                                    </div>
+                                    <div class="passenger-phone-field">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number <span class="text-red-500">*</span></label>
                                         <div class="flex">
                                             <div class="relative country-search-dropdown" style="width: 140px;">
                                                 <input type="text" 
@@ -760,7 +957,7 @@
                                                        readonly 
                                                        value="${(() => {
                                                            const phone = passenger.phone_number || '';
-                                                           if (phone.startsWith('+1')) return '�� +880';
+                                                           if (phone.startsWith('+1')) return '🇧🇩 +880';
                                                            if (phone.startsWith('+44')) return '🇬🇧 +44';
                                                            if (phone.startsWith('+33')) return '🇫🇷 +33';
                                                            if (phone.startsWith('+49')) return '�� +49';
@@ -828,12 +1025,11 @@
                                                 })()}">
                                             </div>
                                             <input type="tel" class="flex-1 border border-l-0 border-gray-300 rounded-r-lg px-3 py-2 passenger-phone-number" 
-                                                   value="${(passenger.phone_number || '').replace(/^\+\d{1,4}/, '')}" placeholder="Enter phone number" ${passenger.type !== 'child' ? 'required' : ''}>
+                                                   value="${(passenger.phone_number || '').replace(/^\+\d{1,4}/, '')}" placeholder="Enter phone number" required>
                                         </div>
                                     </div>
-                                    <div></div> <!-- Empty div for alignment -->
                                 </div>
-                            </div>
+                            `}
 
                             ${passenger.type === 'child' ? 
                                 `<div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -867,6 +1063,9 @@
 
                 // Country search dropdown functionality
                 this.setupCountrySearchListeners(newContainer);
+                
+                // Nationality search dropdown functionality
+                this.setupNationalitySearchListeners(newContainer);
                 
                 // Populate country dropdowns with global data
                 this.populateCountryDropdowns(newContainer);
@@ -975,6 +1174,100 @@
                 });
             }
 
+            setupNationalitySearchListeners(container) {
+                // Nationality search input
+                container.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('passenger-nationality-search')) {
+                        const searchInput = e.target;
+                        const dropdown = searchInput.closest('.nationality-search-dropdown');
+                        const menu = dropdown.querySelector('.nationality-dropdown-menu');
+                        const searchTerm = searchInput.value;
+
+                        // Show dropdown when typing
+                        if (searchTerm.length > 0) {
+                            const results = window.searchNationalities(searchTerm);
+                            
+                            if (results.length > 0) {
+                                menu.innerHTML = results.slice(0, 50).map(country => 
+                                    `<div class="nationality-option px-3 py-2 hover:bg-gray-50 cursor-pointer" 
+                                          data-code="${country.code}" 
+                                          data-nationality="${country.nationality}">
+                                        ${country.name}
+                                    </div>`
+                                ).join('');
+                                menu.classList.remove('hidden');
+                            } else {
+                                menu.innerHTML = '<div class="px-3 py-2 text-gray-500">No results found</div>';
+                                menu.classList.remove('hidden');
+                            }
+                        } else {
+                            // Show all when empty
+                            menu.innerHTML = window.GLOBAL_NATIONALITIES.slice(0, 50).map(country => 
+                                `<div class="nationality-option px-3 py-2 hover:bg-gray-50 cursor-pointer" 
+                                      data-code="${country.code}" 
+                                      data-nationality="${country.nationality}">
+                                    ${country.name}
+                                </div>`
+                            ).join('');
+                            menu.classList.remove('hidden');
+                        }
+                    }
+                });
+
+                // Nationality option selection
+                container.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('nationality-option')) {
+                        const option = e.target;
+                        const dropdown = option.closest('.nationality-search-dropdown');
+                        const searchInput = dropdown.querySelector('.passenger-nationality-search');
+                        const hiddenInput = dropdown.querySelector('.passenger-nationality');
+                        const menu = dropdown.querySelector('.nationality-dropdown-menu');
+                        
+                        const nationality = option.dataset.nationality;
+                        
+                        // Update inputs
+                        searchInput.value = nationality;
+                        hiddenInput.value = nationality;
+                        
+                        // Hide dropdown
+                        menu.classList.add('hidden');
+                        
+                        // Trigger change event for validation
+                        const changeEvent = new Event('change', { bubbles: true });
+                        hiddenInput.dispatchEvent(changeEvent);
+                    }
+                });
+
+                // Show dropdown on focus
+                container.addEventListener('focus', (e) => {
+                    if (e.target.classList.contains('passenger-nationality-search')) {
+                        const dropdown = e.target.closest('.nationality-search-dropdown');
+                        const menu = dropdown.querySelector('.nationality-dropdown-menu');
+                        
+                        // Populate with all options if empty
+                        if (menu.children.length === 0) {
+                            menu.innerHTML = window.GLOBAL_NATIONALITIES.slice(0, 50).map(country => 
+                                `<div class="nationality-option px-3 py-2 hover:bg-gray-50 cursor-pointer" 
+                                      data-code="${country.code}" 
+                                      data-nationality="${country.nationality}">
+                                    ${country.name}
+                                </div>`
+                            ).join('');
+                        }
+                        menu.classList.remove('hidden');
+                    }
+                }, true);
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.nationality-search-dropdown')) {
+                        document.querySelectorAll('.nationality-dropdown-menu').forEach(menu => {
+                            menu.classList.add('hidden');
+                        });
+                    }
+                });
+            }
+
 
 
             updatePassengerData(event) {
@@ -987,6 +1280,16 @@
 
                 if (target.classList.contains('passenger-title')) {
                     passenger.title = target.value;
+                    
+                    // Auto-set gender based on title
+                    const genderInput = passengerDiv.querySelector('.passenger-gender');
+                    if (target.value === 'mr' || target.value === 'mstr') {
+                        passenger.gender = 'm';
+                        if (genderInput) genderInput.value = 'm';
+                    } else if (target.value === 'mrs' || target.value === 'ms' || target.value === 'miss') {
+                        passenger.gender = 'f';
+                        if (genderInput) genderInput.value = 'f';
+                    }
                 } else if (target.classList.contains('passenger-first-name')) {
                     passenger.given_name = target.value;
                 } else if (target.classList.contains('passenger-last-name')) {
@@ -995,6 +1298,8 @@
                     passenger.born_on = target.value;
                 } else if (target.classList.contains('passenger-gender')) {
                     passenger.gender = target.value;
+                } else if (target.classList.contains('passenger-nationality')) {
+                    passenger.nationality = target.value;
                 } else if (target.classList.contains('passenger-email')) {
                     passenger.email = target.value;
                 } else if (target.classList.contains('passenger-phone-number') || target.classList.contains('passenger-country-code')) {
@@ -1055,6 +1360,236 @@
                     LoaderManager.showSection('price-details');
                     
                 }, 200); // Reduced delay for faster loading
+            }
+
+            showFlightDetailsModal() {
+                const modal = document.getElementById('flightDetailsModal');
+                const modalContent = document.getElementById('flightDetailsModalContent');
+                
+                const offer = this.bookingData.offer;
+                
+                if (!offer || !offer.slices) {
+                    modalContent.innerHTML = '<p class="text-gray-600">Flight details not available.</p>';
+                    modal.classList.remove('hidden');
+                    return;
+                }
+                
+                // Check if it's a round trip
+                const isRoundTrip = offer.slices.length > 1;
+                let currentSliceIndex = 0;
+                
+                const renderSliceDetails = (sliceIndex) => {
+                    const slice = offer.slices[sliceIndex];
+                    const sliceLabel = isRoundTrip ? (sliceIndex === 0 ? 'Depart' : 'Return') : 'Flight';
+                    const route = `${slice.segments[0].origin.iata_code} - ${slice.segments[slice.segments.length - 1].destination.iata_code}`;
+                    
+                    let detailsHtml = '';
+                    
+                    // Radio buttons for round trip - Modern Design
+                    if (isRoundTrip) {
+                        detailsHtml += `
+                            <div class="mb-6 flex gap-2 bg-gray-50 p-1.5 rounded-lg">
+                                ${offer.slices.map((s, idx) => {
+                                    const label = idx === 0 ? 'Depart' : 'Return';
+                                    const originCode = s.segments[0].origin.iata_code;
+                                    const destCode = s.segments[s.segments.length - 1].destination.iata_code;
+                                    const r = `${originCode} - ${destCode}`;
+                                    const isActive = idx === sliceIndex;
+                                    return `
+                                        <label class="flex-1 cursor-pointer">
+                                            <input type="radio" name="flightSlice" value="${idx}" 
+                                                ${isActive ? 'checked' : ''} 
+                                                class="hidden peer">
+                                            <div class="flex items-center justify-center gap-2 px-3 py-2 rounded-md transition-all
+                                                ${isActive ? 'bg-orange-500 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-100'}">
+                                                <div class="w-3.5 h-3.5 rounded-full border-2 ${isActive ? 'border-white bg-white' : 'border-gray-400'}
+                                                    flex items-center justify-center">
+                                                    ${isActive ? '<div class="w-1.5 h-1.5 rounded-full bg-orange-500"></div>' : ''}
+                                                </div>
+                                                <span class="text-sm font-semibold">${r} (${label})</span>
+                                            </div>
+                                        </label>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    // Render each segment with modern design
+                    slice.segments.forEach((segment, segIndex) => {
+                        const departureDate = new Date(segment.departing_at);
+                        const arrivalDate = new Date(segment.arriving_at);
+                        
+                        const depTime = departureDate.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        
+                        const depDateFormatted = departureDate.toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                            weekday: 'long'
+                        });
+                        
+                        const arrTime = arrivalDate.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                        
+                        const arrDateFormatted = arrivalDate.toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                            weekday: 'long'
+                        });
+                        
+                        const airline = segment.marketing_carrier?.name || segment.operating_carrier?.name || 'Unknown';
+                        const flightNumber = segment.marketing_carrier_flight_number || segment.operating_carrier_flight_number || '';
+                        const aircraftName = segment.aircraft?.name || '';
+                        
+                        const originCity = segment.origin.city_name || segment.origin.name;
+                        const originAirport = segment.origin.name;
+                        const destCity = segment.destination.city_name || segment.destination.name;
+                        const destAirport = segment.destination.name;
+                        
+                        const cabinClass = segment.passengers?.[0]?.cabin_class_marketing_name || 'Economy';
+                        const cabinCode = segment.passengers?.[0]?.cabin_class || 'economy';
+                        
+                        // Calculate duration - handle both ISO duration and minutes
+                        let durationText = '';
+                        if (segment.duration) {
+                            // If duration is a string (ISO format like "PT1H5M")
+                            if (typeof segment.duration === 'string') {
+                                const match = segment.duration.match(/PT(\d+H)?(\d+M)?/);
+                                if (match) {
+                                    const hours = match[1] ? parseInt(match[1]) : 0;
+                                    const minutes = match[2] ? parseInt(match[2]) : 0;
+                                    durationText = `${hours}h ${minutes}m`;
+                                }
+                            } else {
+                                // If duration is in minutes (number)
+                                const hours = Math.floor(segment.duration / 60);
+                                const minutes = segment.duration % 60;
+                                durationText = `${hours}h ${minutes}m`;
+                            }
+                        } else {
+                            // Calculate from departure and arrival times
+                            const durationMs = arrivalDate.getTime() - departureDate.getTime();
+                            const totalMinutes = Math.floor(durationMs / 60000);
+                            const hours = Math.floor(totalMinutes / 60);
+                            const minutes = totalMinutes % 60;
+                            durationText = `${hours}h ${minutes}m`;
+                        }
+                        
+                        detailsHtml += `
+                            <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-5 mb-4 shadow-md hover:shadow-lg transition-all">
+                                <!-- Departure Section -->
+                                <div class="flex items-start mb-5 pb-5 border-b border-gray-100">
+                                    <div class="flex-shrink-0 mt-1">
+                                        <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <circle cx="10" cy="10" r="6"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <div class="flex items-baseline gap-3 mb-1">
+                                            <span class="text-2xl font-bold text-gray-900">${depTime}</span>
+                                            <span class="text-gray-500 text-xs font-medium">${depDateFormatted}</span>
+                                        </div>
+                                        <div class="text-base font-bold text-gray-800 mb-1">Departure, ${originCity}</div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-block px-2 py-0.5 bg-gray-800 text-white text-xs font-bold rounded">
+                                                ${segment.origin.iata_code}
+                                            </span>
+                                            <span class="text-gray-600 text-xs">${originAirport}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Flight Info Section -->
+                                <div class="flex items-start mb-5 pb-5 border-b border-gray-100">
+                                    <div class="flex-shrink-0 mt-1">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div>
+                                                <div class="text-base font-bold text-gray-900 mb-1">${airline}</div>
+                                                <div class="text-gray-600 text-xs">
+                                                    ${flightNumber ? 'Flight ' + flightNumber : ''}
+                                                    ${aircraftName ? ' • ' + aircraftName : ''}
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-gray-500 text-xs font-medium mb-0.5">Duration</div>
+                                                <div class="text-sm font-bold text-gray-900">${durationText}</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2 mt-2">
+                                            <span class="inline-block px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-lg shadow-md">
+                                                ${cabinClass} (${cabinCode.charAt(0).toUpperCase()})
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Arrival Section -->
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 mt-1">
+                                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <div class="flex items-baseline gap-3 mb-1">
+                                            <span class="text-2xl font-bold text-gray-900">${arrTime}</span>
+                                            <span class="text-gray-500 text-xs font-medium">${arrDateFormatted}</span>
+                                        </div>
+                                        <div class="text-base font-bold text-gray-800 mb-1">Arrival, ${destCity}</div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-block px-2 py-0.5 bg-gray-800 text-white text-xs font-bold rounded">
+                                                ${segment.destination.iata_code}
+                                            </span>
+                                            <span class="text-gray-600 text-xs">${destAirport}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    modalContent.innerHTML = detailsHtml;
+                    
+                    // Add event listeners for radio buttons if round trip
+                    if (isRoundTrip) {
+                        document.querySelectorAll('input[name="flightSlice"]').forEach(radio => {
+                            radio.addEventListener('change', (e) => {
+                                renderSliceDetails(parseInt(e.target.value));
+                            });
+                        });
+                    }
+                };
+                
+                // Render initial slice
+                renderSliceDetails(currentSliceIndex);
+                
+                // Show modal
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            closeFlightDetailsModal() {
+                const modal = document.getElementById('flightDetailsModal');
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
             }
 
             async proceedToPayment() {
@@ -1592,6 +2127,10 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('🚀 Page loaded, initializing...');
             
+            // Load nationalities data
+            console.log('🌍 Loading nationalities...');
+            await window.loadNationalities();
+            
             // 🎯 CRITICAL: Check if returning from Stripe payment
             const urlParams = new URLSearchParams(window.location.search);
             const paymentIntent = urlParams.get('payment_intent');
@@ -1636,5 +2175,52 @@
         });
     </script>
 
+    <script src="components/booking-timer.js"></script>
+    <script>
+        // Initialize booking timer
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Fetch timer duration from config
+                const configResponse = await fetch('/api/config');
+                const config = await configResponse.json();
+                const timerDuration = config.booking_timer_minutes || 15;
+                
+                console.log('⏰ Initializing booking timer with duration:', timerDuration, 'minutes');
+                
+                // Initialize timer
+                const timer = new BookingTimer('booking-timer-container', {
+                    timerDuration: timerDuration,
+                    onExpire: () => {
+                        // Clear booking data
+                        localStorage.removeItem('pending_booking_data');
+                        localStorage.removeItem('booking_timer_start');
+                        
+                        // Show the timer expired modal
+                        const modal = document.getElementById('timerExpiredModal');
+                        modal.classList.remove('hidden');
+                        document.body.style.overflow = 'hidden';
+                        
+                        // Setup go to home button
+                        const goToHomeBtn = document.getElementById('goToHomeBtn');
+                        goToHomeBtn.onclick = () => {
+                            window.location.href = '/';
+                        };
+                    }
+                });
+                
+                // Clean up timer on page unload
+                window.addEventListener('beforeunload', () => {
+                    if (timer) {
+                        timer.destroy();
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error initializing booking timer:', error);
+            }
+        });
+    </script>
+
+    <script src="components/footer.js"></script>
 </body>
 </html>
