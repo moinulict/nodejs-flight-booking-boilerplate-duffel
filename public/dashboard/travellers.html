@@ -9,6 +9,44 @@
     <link rel="stylesheet" href="/components/nav.css">
     <link rel="stylesheet" href="/dashboard/components/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Load Global Country Data -->
+    <script>
+        // Initialize global countries array
+        window.GLOBAL_COUNTRIES = [];
+        
+        // Load countries from API on page load
+        (async function loadCountries() {
+            try {
+                const response = await axios.get('/api/countries');
+                if (response.data && response.data.success && response.data.data) {
+                    window.GLOBAL_COUNTRIES = response.data.data
+                        .filter(country => country.phone_code) // Only include countries with phone codes
+                        .map(country => ({
+                            code: country.code,
+                            name: country.name,
+                            nationality: country.nationality,
+                            phone_code: country.phone_code,
+                            // Create display format for phone dropdown (e.g., "+1 🇺🇸")
+                            display: `${country.phone_code} ${getCountryFlag(country.code)}`
+                        }));
+                    console.log(`✅ Loaded ${window.GLOBAL_COUNTRIES.length} countries with phone codes from API`);
+                }
+            } catch (error) {
+                console.error('❌ Failed to load countries:', error);
+            }
+        })();
+        
+        // Helper function to convert country code to flag emoji
+        function getCountryFlag(countryCode) {
+            if (!countryCode || countryCode.length !== 2) return '🌍';
+            const codePoints = countryCode
+                .toUpperCase()
+                .split('')
+                .map(char => 127397 + char.charCodeAt());
+            return String.fromCodePoint(...codePoints);
+        }
+    </script>
 </head>
 <body class="bg-gray-50 dashboard-page">
     <!-- Navigation -->

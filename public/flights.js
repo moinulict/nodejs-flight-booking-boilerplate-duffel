@@ -8,6 +8,9 @@ let existingTravellers = []; // Store existing travellers from API
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Flights page loaded, initializing...');
     
+    // Load country codes from API
+    await loadCountryCodes();
+    
     // Initialize airport dropdowns
     initializeAirportDropdowns();
     
@@ -54,6 +57,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('flightSearchForm').addEventListener('submit', function(e) {
         e.preventDefault();
         performSearch();
+        // Collapse form on mobile after search
+        setTimeout(() => {
+            collapseMobileSearchForm();
+        }, 500);
     });
 
     // Trip type change handler
@@ -122,6 +129,61 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     
+    // Modal Price range sliders
+    const priceMinSliderModal = document.getElementById('priceMinModal');
+    const priceMaxSliderModal = document.getElementById('priceMaxModal');
+    const priceMinValueModal = document.getElementById('priceMinValueModal');
+    const priceMaxValueModal = document.getElementById('priceMaxValueModal');
+    const rangeTrackFillModal = document.getElementById('rangeTrackFillModal');
+    
+    function updateModalPriceTrack() {
+        if (!priceMinSliderModal || !priceMaxSliderModal || !rangeTrackFillModal) return;
+        
+        const min = parseInt(priceMinSliderModal.min);
+        const max = parseInt(priceMinSliderModal.max);
+        const minVal = parseInt(priceMinSliderModal.value);
+        const maxVal = parseInt(priceMaxSliderModal.value);
+        
+        const minPercent = ((minVal - min) / (max - min)) * 100;
+        const maxPercent = ((maxVal - min) / (max - min)) * 100;
+        
+        rangeTrackFillModal.style.left = minPercent + '%';
+        rangeTrackFillModal.style.width = (maxPercent - minPercent) + '%';
+    }
+    
+    window.updateModalPriceTrack = updateModalPriceTrack;
+    
+    if (priceMinSliderModal && priceMaxSliderModal) {
+        updateModalPriceTrack();
+        
+        priceMinSliderModal.addEventListener('input', function() {
+            const minVal = parseInt(this.value);
+            const maxVal = parseInt(priceMaxSliderModal.value);
+            
+            if (minVal >= maxVal) {
+                this.value = maxVal - 50;
+            }
+            
+            priceMinValueModal.textContent = parseInt(this.value).toLocaleString();
+            updateModalPriceTrack();
+        });
+        
+        priceMaxSliderModal.addEventListener('input', function() {
+            const minVal = parseInt(priceMinSliderModal.value);
+            const maxVal = parseInt(this.value);
+            
+            if (maxVal <= minVal) {
+                this.value = minVal + 50;
+            }
+            
+            priceMaxValueModal.textContent = parseInt(this.value).toLocaleString();
+            updateModalPriceTrack();
+        });
+    }
+    
+    // Make updatePriceTrack globally available
+    window.updatePriceTrack = updateRangeTrackFill;
+    
     // Airline filter checkboxes will be added dynamically
     
     // Passenger dropdown functionality
@@ -134,6 +196,141 @@ function resetAllFilters() {
     resetAirlineFilters();
     console.log('🔄 All filters reset');
 }
+
+// Modal Filter Functions
+function openFilterModal() {
+    const modal = document.getElementById('filterModal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Sync modal filters with desktop filters
+    syncFiltersToModal();
+}
+
+function closeFilterModal() {
+    const modal = document.getElementById('filterModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function syncFiltersToModal() {
+    // Sync price range
+    const priceMin = document.getElementById('priceMin').value;
+    const priceMax = document.getElementById('priceMax').value;
+    document.getElementById('priceMinModal').value = priceMin;
+    document.getElementById('priceMaxModal').value = priceMax;
+    document.getElementById('priceMinValueModal').textContent = parseInt(priceMin).toLocaleString();
+    document.getElementById('priceMaxValueModal').textContent = parseInt(priceMax).toLocaleString();
+    updateModalPriceTrack();
+    
+    // Sync stops checkboxes
+    const stopsFilters = document.querySelectorAll('.stops-filter');
+    const stopsFiltersModal = document.querySelectorAll('.stops-filter-modal');
+    stopsFilters.forEach((checkbox, index) => {
+        stopsFiltersModal[index].checked = checkbox.checked;
+    });
+    
+    // Sync airline checkboxes
+    const airlineFilters = document.querySelectorAll('input[name="airline"]');
+    const airlineFiltersModal = document.querySelectorAll('input[name="airline-modal"]');
+    airlineFilters.forEach((checkbox, index) => {
+        if (airlineFiltersModal[index]) {
+            airlineFiltersModal[index].checked = checkbox.checked;
+        }
+    });
+}
+
+function applyModalFilters() {
+    // Sync modal filters back to desktop filters
+    const priceMinModal = document.getElementById('priceMinModal').value;
+    const priceMaxModal = document.getElementById('priceMaxModal').value;
+    document.getElementById('priceMin').value = priceMinModal;
+    document.getElementById('priceMax').value = priceMaxModal;
+    document.getElementById('priceMinValue').textContent = parseInt(priceMinModal).toLocaleString();
+    document.getElementById('priceMaxValue').textContent = parseInt(priceMaxModal).toLocaleString();
+    updatePriceTrack();
+    
+    // Sync stops
+    const stopsFiltersModal = document.querySelectorAll('.stops-filter-modal');
+    const stopsFilters = document.querySelectorAll('.stops-filter');
+    stopsFiltersModal.forEach((checkbox, index) => {
+        stopsFilters[index].checked = checkbox.checked;
+    });
+    
+    // Sync airlines
+    const airlineFiltersModal = document.querySelectorAll('input[name="airline-modal"]');
+    const airlineFilters = document.querySelectorAll('input[name="airline"]');
+    airlineFiltersModal.forEach((checkbox, index) => {
+        if (airlineFilters[index]) {
+            airlineFilters[index].checked = checkbox.checked;
+        }
+    });
+    
+    // Apply filters and close modal
+    applyFilters();
+    updateFilterBadge();
+    closeFilterModal();
+}
+
+function resetAllFiltersModal() {
+    resetPriceFilterModal();
+    resetStopsFilterModal();
+    resetAirlineFiltersModal();
+}
+
+function resetPriceFilterModal() {
+    document.getElementById('priceMinModal').value = 0;
+    document.getElementById('priceMaxModal').value = 10000;
+    document.getElementById('priceMinValueModal').textContent = '0';
+    document.getElementById('priceMaxValueModal').textContent = '10,000';
+    updateModalPriceTrack();
+}
+
+function resetStopsFilterModal() {
+    document.querySelectorAll('.stops-filter-modal').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function resetAirlineFiltersModal() {
+    document.querySelectorAll('input[name="airline-modal"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+function updateFilterBadge() {
+    const priceMin = parseInt(document.getElementById('priceMin').value);
+    const priceMax = parseInt(document.getElementById('priceMax').value);
+    const stopsChecked = document.querySelectorAll('.stops-filter:checked').length;
+    const airlinesChecked = document.querySelectorAll('input[name="airline"]:checked').length;
+    
+    let activeFilters = 0;
+    if (priceMin > 0 || priceMax < 10000) activeFilters++;
+    if (stopsChecked < 3) activeFilters++;
+    if (airlinesChecked > 0) activeFilters++;
+    
+    const badge = document.getElementById('mobileFilterBadge');
+    if (activeFilters > 0) {
+        badge.textContent = activeFilters;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeFilterModal();
+    }
+});
+
+// Close modal on backdrop click
+document.getElementById('filterModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'filterModal') {
+        closeFilterModal();
+    }
+});
 
 function setupPassengerDropdown() {
     const dropdown = document.getElementById('passengerDropdown');
@@ -175,6 +372,74 @@ function decrementPassenger(type) {
         count--;
         countElement.textContent = count;
         updatePassengerSummary();
+    }
+}
+
+// Mobile Search Form Toggle
+function toggleMobileSearchForm() {
+    const formContainer = document.getElementById('searchFormContainer');
+    const summary = document.getElementById('mobileSearchSummary');
+    
+    // Check if we're on mobile (window width < 1024px which is lg breakpoint)
+    if (window.innerWidth >= 1024) {
+        return; // Don't toggle on desktop
+    }
+    
+    // Toggle visibility
+    if (formContainer.classList.contains('hidden')) {
+        formContainer.classList.remove('hidden');
+        summary.classList.add('hidden');
+        // Scroll to form
+        formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        formContainer.classList.add('hidden');
+        summary.classList.remove('hidden');
+        updateMobileSearchSummary();
+    }
+}
+
+// Update Mobile Search Summary
+function updateMobileSearchSummary() {
+    const tripType = document.querySelector('input[name="tripType"]:checked')?.value;
+    const origin = document.getElementById('origin').value;
+    const destination = document.getElementById('destination').value;
+    const departureDate = document.getElementById('departureDate').value;
+    const returnDate = document.getElementById('returnDate').value;
+    
+    // Update trip type
+    const tripTypeText = tripType === 'roundTrip' ? 'Round Trip' : 'One Way';
+    document.getElementById('summaryTripType').textContent = tripTypeText;
+    
+    // Update route
+    document.getElementById('summaryOrigin').textContent = origin || '-';
+    document.getElementById('summaryDestination').textContent = destination || '-';
+    
+    // Update date
+    let dateText = '-';
+    if (departureDate) {
+        const depDate = moment(departureDate).format('MMM D, YYYY');
+        if (tripType === 'roundTrip' && returnDate) {
+            const retDate = moment(returnDate).format('MMM D, YYYY');
+            dateText = `${depDate} - ${retDate}`;
+        } else {
+            dateText = depDate;
+        }
+    }
+    document.getElementById('summaryDate').textContent = dateText;
+    
+    // Update passengers
+    document.getElementById('summaryPassengers').textContent = document.getElementById('passengerSummary').textContent;
+}
+
+// Collapse search form on mobile after successful search
+function collapseMobileSearchForm() {
+    if (window.innerWidth < 1024) { // Only on mobile
+        const formContainer = document.getElementById('searchFormContainer');
+        const summary = document.getElementById('mobileSearchSummary');
+        
+        formContainer.classList.add('hidden');
+        summary.classList.remove('hidden');
+        updateMobileSearchSummary();
     }
 }
 
@@ -244,6 +509,18 @@ async function initializeFromURL() {
     
     // Update passenger summary
     updatePassengerSummary();
+    
+    // Update mobile summary if we have search parameters
+    if (departureId && arrivalId && outboundDate) {
+        updateMobileSearchSummary();
+        // Show summary and hide form on mobile
+        if (window.innerWidth < 1024) {
+            const formContainer = document.getElementById('searchFormContainer');
+            const summary = document.getElementById('mobileSearchSummary');
+            formContainer.classList.add('hidden');
+            summary.classList.remove('hidden');
+        }
+    }
     
     console.log('🎯 URL initialization complete');
 }
@@ -1091,6 +1368,7 @@ function redirectToBookingSummary(offer) {
         offer_id: offer.id,
         total_amount: offer.total_amount,
         total_currency: offer.total_currency,
+        data_source: 'duffel', // Track the flight data source (duffel, amadeus, sabre, etc.)
         offer: offer, // Store complete offer for detailed display
         flightDetails: {
             route: `${offer.slices[0].segments[0].origin.iata_code} → ${offer.slices[0].segments[0].destination.iata_code}`,
@@ -1403,6 +1681,7 @@ async function processBooking() {
         passengers: passengers,
         total_amount: selectedOffer.total_amount,
         total_currency: selectedOffer.total_currency,
+        data_source: 'duffel', // Track the flight data source (duffel, amadeus, sabre, etc.)
         flightDetails: {
             route: `${selectedOffer.slices[0].segments[0].origin.iata_code} → ${selectedOffer.slices[0].segments[0].destination.iata_code}`,
             airline: selectedOffer.slices[0].segments[0].marketing_carrier?.name || 'Unknown',
@@ -1669,6 +1948,7 @@ function applyFilters() {
     
     console.log(`📊 Filtered ${filteredFlights.length} flights from ${allFlights.length} total`);
     displayFlights(filteredFlights);
+    updateFilterBadge();
 }
 
 function updateAirlineFilters() {
@@ -1702,6 +1982,21 @@ function updateAirlineFilters() {
             <i class="fas fa-plane text-orange-400"></i>
         </label>
     `).join('');
+    
+    // Also populate modal airline filters
+    const modalContainer = document.getElementById('airlinesFilterModal');
+    if (modalContainer) {
+        modalContainer.innerHTML = airlines.map(airline => `
+            <label class="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 cursor-pointer">
+                <div class="flex items-center">
+                    <input type="checkbox" name="airline-modal" value="${airline}" 
+                           class="mr-3 text-orange-600 focus:ring-orange-500 rounded">
+                    <span class="text-gray-800 font-medium">${airline}</span>
+                </div>
+                <i class="fas fa-plane text-orange-400"></i>
+            </label>
+        `).join('');
+    }
 }
 
 function resetAirlineFilters() {
@@ -1932,61 +2227,29 @@ function swapOriginDestination() {
     destinationInput.setAttribute('data-type', tempType || '');
 }
 
-// Country codes data
-const countryCodes = [
-    { name: 'Afghanistan', code: '+93', abbr: 'AF' },
-    { name: 'Albania', code: '+355', abbr: 'AL' },
-    { name: 'Algeria', code: '+213', abbr: 'DZ' },
-    { name: 'Argentina', code: '+54', abbr: 'AR' },
-    { name: 'Australia', code: '+61', abbr: 'AU' },
-    { name: 'Austria', code: '+43', abbr: 'AT' },
-    { name: 'Bahrain', code: '+973', abbr: 'BH' },
-    { name: 'Bangladesh', code: '+880', abbr: 'BD' },
-    { name: 'Belgium', code: '+32', abbr: 'BE' },
-    { name: 'Brazil', code: '+55', abbr: 'BR' },
-    { name: 'Canada', code: '+1', abbr: 'CA' },
-    { name: 'China', code: '+86', abbr: 'CN' },
-    { name: 'Denmark', code: '+45', abbr: 'DK' },
-    { name: 'Egypt', code: '+20', abbr: 'EG' },
-    { name: 'France', code: '+33', abbr: 'FR' },
-    { name: 'Germany', code: '+49', abbr: 'DE' },
-    { name: 'Hong Kong', code: '+852', abbr: 'HK' },
-    { name: 'India', code: '+91', abbr: 'IN' },
-    { name: 'Indonesia', code: '+62', abbr: 'ID' },
-    { name: 'Iran', code: '+98', abbr: 'IR' },
-    { name: 'Iraq', code: '+964', abbr: 'IQ' },
-    { name: 'Ireland', code: '+353', abbr: 'IE' },
-    { name: 'Italy', code: '+39', abbr: 'IT' },
-    { name: 'Japan', code: '+81', abbr: 'JP' },
-    { name: 'Jordan', code: '+962', abbr: 'JO' },
-    { name: 'Kuwait', code: '+965', abbr: 'KW' },
-    { name: 'Malaysia', code: '+60', abbr: 'MY' },
-    { name: 'Mexico', code: '+52', abbr: 'MX' },
-    { name: 'Nepal', code: '+977', abbr: 'NP' },
-    { name: 'Netherlands', code: '+31', abbr: 'NL' },
-    { name: 'New Zealand', code: '+64', abbr: 'NZ' },
-    { name: 'Norway', code: '+47', abbr: 'NO' },
-    { name: 'Oman', code: '+968', abbr: 'OM' },
-    { name: 'Pakistan', code: '+92', abbr: 'PK' },
-    { name: 'Philippines', code: '+63', abbr: 'PH' },
-    { name: 'Poland', code: '+48', abbr: 'PL' },
-    { name: 'Qatar', code: '+974', abbr: 'QA' },
-    { name: 'Russia', code: '+7', abbr: 'RU' },
-    { name: 'Saudi Arabia', code: '+966', abbr: 'SA' },
-    { name: 'Singapore', code: '+65', abbr: 'SG' },
-    { name: 'South Africa', code: '+27', abbr: 'ZA' },
-    { name: 'South Korea', code: '+82', abbr: 'KR' },
-    { name: 'Spain', code: '+34', abbr: 'ES' },
-    { name: 'Sri Lanka', code: '+94', abbr: 'LK' },
-    { name: 'Sweden', code: '+46', abbr: 'SE' },
-    { name: 'Switzerland', code: '+41', abbr: 'CH' },
-    { name: 'Thailand', code: '+66', abbr: 'TH' },
-    { name: 'Turkey', code: '+90', abbr: 'TR' },
-    { name: 'United Arab Emirates', code: '+971', abbr: 'AE' },
-    { name: 'United Kingdom', code: '+44', abbr: 'GB' },
-    { name: 'United States', code: '+1', abbr: 'US' },
-    { name: 'Vietnam', code: '+84', abbr: 'VN' }
-];
+// Country codes data - Load from API
+let countryCodes = [];
+
+// Load country codes from API on page load
+async function loadCountryCodes() {
+    try {
+        const response = await axios.get('/api/countries');
+        if (response.data.success && response.data.data) {
+            // Map the country data from your data/countries.json file
+            countryCodes = response.data.data.map(country => ({
+                name: country.name,
+                code: country.phone_code, // Now using phone_code from JSON
+                abbr: country.code
+            })).filter(country => country.code); // Only include countries with phone codes
+            
+            console.log(`✅ Loaded ${countryCodes.length} country codes from API`);
+        }
+    } catch (error) {
+        console.error('❌ Failed to load country codes:', error);
+        // No fallback needed - if server is down, nothing works anyway
+        countryCodes = [];
+    }
+}
 
 // Show country dropdown
 function showCountryDropdown(index) {
