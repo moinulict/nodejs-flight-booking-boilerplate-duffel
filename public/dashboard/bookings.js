@@ -1,3 +1,45 @@
+// Cache for airport data (loaded from persistent data source)
+window.airportDataCache = {};
+
+// Load airport data cache from API
+async function loadAirportDataCache() {
+    try {
+        const response = await axios.get('/api/places?query=');
+        // This will return empty since query is empty, so let's fetch all airports differently
+        // For now, we'll load on-demand as needed
+        console.log('✈️ Airport data cache ready');
+    } catch (error) {
+        console.error('Failed to load airport cache:', error);
+    }
+}
+
+// Fetch airport data by IATA code
+async function fetchAirportByCode(iataCode) {
+    if (!iataCode) return null;
+    
+    // Check if already cached
+    if (window.airportDataCache[iataCode]) {
+        return window.airportDataCache[iataCode];
+    }
+    
+    try {
+        // Search for the airport by code
+        const response = await axios.get(`/api/places?query=${iataCode}`);
+        const airports = response.data.data || [];
+        const airport = airports.find(a => a.iata_code === iataCode);
+        
+        if (airport) {
+            // Cache it
+            window.airportDataCache[iataCode] = airport;
+            return airport;
+        }
+    } catch (error) {
+        console.error(`Failed to fetch airport ${iataCode}:`, error);
+    }
+    
+    return null;
+}
+
 // My Bookings Management System
 class BookingsManager {
     constructor() {
@@ -16,6 +58,9 @@ class BookingsManager {
         // Initialize navigation and sidebar
         initNavigation();
         initDashboardSidebar('bookings');
+
+        // Load airport data cache
+        await loadAirportDataCache();
 
         this.setupEventListeners();
         await this.loadBookings();
@@ -501,26 +546,27 @@ class BookingsManager {
         };
     }
 
-    getCityName(code) {
-        const cities = {
-            'DAC': 'Dhaka',
-            'CXB': "Cox's Bazar",
-            'CGP': 'Chittagong',
-            'JSR': 'Jashore',
-            'RJH': 'Rajshahi'
-        };
-        return cities[code] || code;
+    async getCityName(code) {
+        // Check if airport data is cached
+        if (window.airportDataCache && window.airportDataCache[code]) {
+            return window.airportDataCache[code].city;
+        }
+        
+        // Fetch from API
+        const airport = await fetchAirportByCode(code);
+        return airport ? airport.city : code;
     }
 
-    getAirportName(code) {
-        const airports = {
-            'DAC': 'Hazrat Shahjalal International Airport, Bangladesh (TD)',
-            'CXB': "Cox's Bazar Airport, Bangladesh",
-            'CGP': 'Chittagong Airport, Bangladesh',
-            'JSR': 'Jashore Airport, Bangladesh',
-            'RJH': 'Rajshahi Airport, Bangladesh'
-        };
-        return airports[code] || `${code} Airport`;
+    async getAirportName(code) {
+        // Check if airport data is cached
+        if (window.airportDataCache && window.airportDataCache[code]) {
+            const airport = window.airportDataCache[code];
+            return `${airport.name}, ${airport.country}`;
+        }
+        
+        // Fetch from API
+        const airport = await fetchAirportByCode(code);
+        return airport ? `${airport.name}, ${airport.country}` : `${code} Airport`;
     }
 
     calculateArrivalTime(departureTime) {

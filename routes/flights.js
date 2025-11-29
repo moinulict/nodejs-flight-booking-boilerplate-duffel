@@ -1,14 +1,146 @@
 const express = require('express');
-const { duffelAPI } = require('../config/api');
+const { duffelAPI, amadeusAPI, AMADEUS_API_KEY, AMADEUS_API_SECRET } = require('../config/api');
+const { normalizeAllOffers, sortOffersByPrice } = require('../utils/flight-normalizer');
 
 const router = express.Router();
 
-// Search flights
-router.post('/search-flights', async (req, res) => {
+// Amadeus: Get access token
+async function getAmadeusAccessToken() {
   try {
+    const response = await amadeusAPI.post('/v1/security/oauth2/token', 
+      `grant_type=client_credentials&client_id=${AMADEUS_API_KEY}&client_secret=${AMADEUS_API_SECRET}`
+    );
+    return response.data.access_token;
+  } catch (error) {
+    console.error('❌ Amadeus token error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Search Duffel flights
+async function searchDuffelFlights(searchParams) {
+  try {
+    console.log('🔵 Searching Duffel...');
+    const response = await duffelAPI.post('/air/offer_requests', searchParams);
+    const offersResponse = await duffelAPI.get(`/air/offers?offer_request_id=${response.data.data.id}`);
+    console.log(`✅ Duffel returned ${offersResponse.data.data.length} offers`);
+    return offersResponse.data.data;
+  } catch (error) {
+    console.error('❌ Duffel search error:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+// Search Amadeus flights
+async function searchAmadeusFlights(params, accessToken) {
+  try {
+    console.log('🟠 Searching Amadeus...');
+    const searchResponse = await amadeusAPI.get('/v2/shopping/flight-offers', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      params: params
+    });
+    console.log(`✅ Amadeus returned ${searchResponse.data.data?.length || 0} offers`);
+    return {
+      offers: searchResponse.data.data || [],
+      dictionaries: searchResponse.data.dictionaries || {}
+    };
+  } catch (error) {
+    console.error('❌ Amadeus search error:', error.response?.data || error.message);
+    return { offers: [], dictionaries: {} };
+  }
+}
+
+// TEST API: Amadeus flight search (for testing only)
+router.post('/test-amadeus-search', async (req, res) => {
+  try {
+    console.log('\n🔵 ===== AMADEUS FLIGHT SEARCH TEST =====');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
+    
     const { origin, destination, departureDate, returnDate, passengers, cabinClass } = req.body;
     
+    // Step 1: Get access token
+    console.log('🔑 Getting Amadeus access token...');
+    const accessToken = await getAmadeusAccessToken();
+    console.log('✅ Access token obtained');
+    
+    // Step 2: Search flights
+    console.log('🔍 Searching flights on Amadeus...');
+    
+    // Build search parameters
     const searchParams = {
+      originLocationCode: origin,
+      destinationLocationCode: destination,
+      departureDate: departureDate,
+      adults: passengers?.filter(p => p.type === 'adult')?.length || 1,
+      travelClass: cabinClass?.toUpperCase() || 'ECONOMY'
+    };
+    
+    // Add return date if provided
+    if (returnDate) {
+      searchParams.returnDate = returnDate;
+    }
+    
+    // Add children and infants if provided
+    const children = passengers?.filter(p => p.type === 'child')?.length || 0;
+    const infants = passengers?.filter(p => p.type === 'infant_without_seat')?.length || 0;
+    
+    if (children > 0) searchParams.children = children;
+    if (infants > 0) searchParams.infants = infants;
+    
+    console.log('🔍 Search parameters:', searchParams);
+    
+    const searchResponse = await amadeusAPI.get('/v2/shopping/flight-offers', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      params: searchParams
+    });
+    
+    console.log('✅ Amadeus API responded');
+    console.log('📊 Found offers:', searchResponse.data.data?.length || 0);
+    console.log('\n📦 ===== AMADEUS RESPONSE DATA =====');
+    console.log(JSON.stringify(searchResponse.data, null, 2));
+    console.log('===== END AMADEUS RESPONSE =====\n');
+    
+    res.json({
+      success: true,
+      source: 'amadeus',
+      count: searchResponse.data.data?.length || 0,
+      data: searchResponse.data
+    });
+    
+  } catch (error) {
+    console.error('\n❌ ===== AMADEUS SEARCH ERROR =====');
+    console.error('Error message:', error.message);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', JSON.stringify(error.response?.data, null, 2));
+    console.error('===== END ERROR =====\n');
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Amadeus flight search failed',
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+// Search flights - Combined search from both Duffel and Amadeus
+router.post('/search-flights', async (req, res) => {
+  try {
+    console.log('\n🔍 ===== MULTI-SOURCE FLIGHT SEARCH =====');
+    console.log('📅 Timestamp:', new Date().toISOString());
+    
+    const { origin, destination, departureDate, returnDate, passengers, cabinClass } = req.body;
+    
+    console.log('📋 Search params:', { origin, destination, departureDate, returnDate, passengers: passengers?.length, cabinClass });
+    
+    // Prepare search parameters for both sources
+    
+    // 1. Duffel search parameters
+    const duffelParams = {
       data: {
         slices: [
           {
@@ -22,36 +154,125 @@ router.post('/search-flights', async (req, res) => {
       }
     };
 
-    // Add return slice if return date is provided
     if (returnDate) {
-      searchParams.data.slices.push({
+      duffelParams.data.slices.push({
         origin: destination,
         destination: origin,
         departure_date: returnDate
       });
     }
 
-    console.log('Search params:', JSON.stringify(searchParams, null, 2));
+    // 2. Amadeus search parameters
+    const amadeusParams = {
+      originLocationCode: origin,
+      destinationLocationCode: destination,
+      departureDate: departureDate,
+      adults: passengers?.filter(p => p.type === 'adult')?.length || 1,
+      travelClass: (cabinClass || 'economy').toUpperCase(),
+      max: 10 // Limit results
+    };
 
-    // Create offer request using the correct v2 endpoint
-    console.log('📤 Creating offer request...');
-    const response = await duffelAPI.post('/air/offer_requests', searchParams);
+    if (returnDate) {
+      amadeusParams.returnDate = returnDate;
+    }
+
+    const children = passengers?.filter(p => p.type === 'child')?.length || 0;
+    const infants = passengers?.filter(p => p.type === 'infant_without_seat')?.length || 0;
     
-    console.log('Offer request created:', response.data.data.id);
+    if (children > 0) amadeusParams.children = children;
+    if (infants > 0) amadeusParams.infants = infants;
+
+    // Search both sources in parallel
+    console.log('� Searching both sources in parallel...');
     
-    // Get offers using the correct v2 endpoint
-    console.log('📥 Fetching offers...');
-    const offersResponse = await duffelAPI.get(`/air/offers?offer_request_id=${response.data.data.id}`);
+    const [duffelOffers, amadeusData, amadeusToken] = await Promise.all([
+      searchDuffelFlights(duffelParams),
+      getAmadeusAccessToken().then(token => 
+        searchAmadeusFlights(amadeusParams, token).then(data => data)
+      ).catch(err => {
+        console.error('Amadeus search failed:', err.message);
+        return { offers: [], dictionaries: {} };
+      }),
+      getAmadeusAccessToken().catch(() => null)
+    ]);
+
+    // Normalize and combine offers
+    console.log('\n� Normalizing offers...');
+    const normalizedOffers = normalizeAllOffers(
+      duffelOffers,
+      amadeusData.offers || [],
+      amadeusData.dictionaries || {}
+    );
+
+    // Sort by price
+    const sortedOffers = sortOffersByPrice(normalizedOffers);
+
+    // Count airlines by source for detailed logging
+    const duffelAirlines = new Set();
+    const amadeusAirlines = new Set();
+    const allAirlines = new Set();
+    const airlineCounts = {};
     
-    console.log(`✅ Found ${offersResponse.data.data.length} offers`);
+    sortedOffers.forEach(offer => {
+      const airline = offer.slices[0]?.segments[0]?.airline?.name || 
+                     offer.slices[0]?.segments[0]?.marketing_carrier?.name || 
+                     'Unknown';
+      allAirlines.add(airline);
+      
+      // Count by airline
+      if (!airlineCounts[airline]) {
+        airlineCounts[airline] = { total: 0, duffel: 0, amadeus: 0 };
+      }
+      airlineCounts[airline].total++;
+      
+      if (offer.source === 'duffel') {
+        duffelAirlines.add(airline);
+        airlineCounts[airline].duffel++;
+      } else if (offer.source === 'amadeus') {
+        amadeusAirlines.add(airline);
+        airlineCounts[airline].amadeus++;
+      }
+    });
+
+    console.log('\n✅ ===== SEARCH COMPLETE =====');
+    console.log(`📊 Total offers: ${sortedOffers.length}`);
+    console.log(`   - Duffel: ${duffelOffers.length} offers`);
+    console.log(`   - Amadeus: ${amadeusData.offers?.length || 0} offers`);
+    console.log(`\n✈️  Unique Airlines: ${allAirlines.size} total`);
+    console.log(`   - From Duffel: ${duffelAirlines.size} airlines`);
+    console.log(`   - From Amadeus: ${amadeusAirlines.size} airlines`);
+    console.log(`\n📋 Duffel Airlines:`, Array.from(duffelAirlines).sort().join(', ') || 'None');
+    console.log(`📋 Amadeus Airlines:`, Array.from(amadeusAirlines).sort().join(', ') || 'None');
+    console.log(`\n📊 Airline Breakdown:`);
+    Object.entries(airlineCounts).sort((a, b) => b[1].total - a[1].total).forEach(([airline, counts]) => {
+      console.log(`   ${airline}: ${counts.total} offers (Duffel: ${counts.duffel}, Amadeus: ${counts.amadeus})`);
+    });
+    
+    if (sortedOffers.length > 0) {
+      const firstOffer = sortedOffers[0];
+      const lastOffer = sortedOffers[sortedOffers.length - 1];
+      const minPrice = firstOffer.price?.total || firstOffer.total_amount;
+      const maxPrice = lastOffer.price?.total || lastOffer.total_amount;
+      const currency = firstOffer.price?.currency || firstOffer.total_currency;
+      console.log(`\n💰 Price range: ${currency} ${minPrice} - ${maxPrice}`);
+    }
+    console.log('================================\n');
     
     res.json({
       success: true,
-      request_id: response.data.data.id,
-      data: offersResponse.data.data
+      sources: {
+        duffel: duffelOffers.length,
+        amadeus: amadeusData.offers?.length || 0
+      },
+      total_offers: sortedOffers.length,
+      duffel_count: duffelOffers.length,
+      amadeus_count: amadeusData.offers?.length || 0,
+      unique_airlines: allAirlines.size,
+      data: sortedOffers
     });
+    
   } catch (error) {
-    console.error('Flight search error:', error.response?.data || error.message);
+    console.error('\n❌ Flight search error:', error.response?.data || error.message);
     res.status(500).json({ 
       success: false,
       error: 'Failed to search flights',

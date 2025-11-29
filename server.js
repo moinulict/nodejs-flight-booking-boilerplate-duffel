@@ -16,6 +16,7 @@ const bookingsRouter = require('./routes/bookings');
 const authRouter = require('./routes/auth');
 const systemRouter = require('./routes/system');
 const countriesRouter = require('./routes/countries');
+const airlinesRouter = require('./routes/airlines');
 
 // Initialize Express app
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api', bookingsRouter);
 app.use('/api', authRouter);
 app.use('/api', systemRouter);
 app.use('/api', countriesRouter);
+app.use('/api', airlinesRouter);
 
 // Legacy v1 API routes (for backward compatibility)
 // Note: These routes are deprecated and will be removed in future versions

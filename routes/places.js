@@ -59,4 +59,36 @@ router.get('/places', async (req, res) => {
   }
 });
 
+// Get popular airports - Returns frequently searched airports from data
+router.get('/popular-airports', async (req, res) => {
+  try {
+    // Define popular airport codes (most searched international hubs)
+    const popularCodes = ['LHR', 'JFK', 'CDG', 'DXB', 'SIN', 'LAX', 'AMS', 'FRA'];
+    
+    // Filter airports from the persistent data
+    const popularAirports = localAirports.filter(airport => 
+      popularCodes.includes(airport.iata_code) && airport.type === 'airport'
+    );
+    
+    // Sort by the order in popularCodes array
+    const sortedPopular = popularCodes
+      .map(code => popularAirports.find(airport => airport.iata_code === code))
+      .filter(airport => airport !== undefined);
+    
+    console.log(`✈️  Loaded ${sortedPopular.length} popular airports from persistent data`);
+    res.json({ 
+      success: true,
+      data: sortedPopular 
+    });
+    
+  } catch (error) {
+    console.error('Popular airports error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to load popular airports',
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;

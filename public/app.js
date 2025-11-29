@@ -287,45 +287,48 @@ function setupPlaceSearch(inputId, suggestionsId) {
     });
 }
 
-function showPopularDestinations(suggestionsDiv, input) {
-    const popularAirports = [
-        { name: 'London Heathrow Airport', iata_code: 'LHR', type: 'airport', city: 'London', country: 'United Kingdom' },
-        { name: 'John F. Kennedy International Airport', iata_code: 'JFK', type: 'airport', city: 'New York', country: 'United States' },
-        { name: 'Charles de Gaulle Airport', iata_code: 'CDG', type: 'airport', city: 'Paris', country: 'France' },
-        { name: 'Dubai International Airport', iata_code: 'DXB', type: 'airport', city: 'Dubai', country: 'United Arab Emirates' },
-        { name: 'Singapore Changi Airport', iata_code: 'SIN', type: 'airport', city: 'Singapore', country: 'Singapore' },
-        { name: 'Los Angeles International Airport', iata_code: 'LAX', type: 'airport', city: 'Los Angeles', country: 'United States' },
-        { name: 'Amsterdam Airport Schiphol', iata_code: 'AMS', type: 'airport', city: 'Amsterdam', country: 'Netherlands' },
-        { name: 'Frankfurt Airport', iata_code: 'FRA', type: 'airport', city: 'Frankfurt', country: 'Germany' }
-    ];
-
-    const html = `
-        <div class="p-2 bg-gray-50 border-b border-gray-200">
-            <div class="text-xs text-gray-500 font-medium">Popular Airports</div>
-        </div>
-    ` + popularAirports.map(place => {
-        const icon = 'fas fa-plane';
-        const badgeClass = 'airport-badge';
+async function showPopularDestinations(suggestionsDiv, input) {
+    try {
+        // Fetch popular airports from API (data from persistent data/airports.json)
+        const response = await axios.get('/api/popular-airports');
+        const popularAirports = response.data.data || [];
         
-        return `
-            <div class="place-suggestion p-3 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center space-x-3" 
-                 onclick="selectPlace('${place.iata_code}', '${escapeHtml(place.name)}', '${place.iata_code}', '${input.id}', '${suggestionsDiv.id}', '${place.type}')">
-                <div class="flex-shrink-0">
-                    <i class="${icon} text-gray-400"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center space-x-2">
-                        <div class="font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">${escapeHtml(place.name)}</div>
-                        <span class="place-type-badge ${badgeClass} flex-shrink-0">Airport</span>
-                    </div>
-                    <div class="text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis">${place.iata_code} • ${place.city}, ${place.country}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
+        if (popularAirports.length === 0) {
+            suggestionsDiv.classList.add('hidden');
+            return;
+        }
 
-    suggestionsDiv.innerHTML = html;
-    suggestionsDiv.classList.remove('hidden');
+        const html = `
+            <div class="p-2 bg-gray-50 border-b border-gray-200">
+                <div class="text-xs text-gray-500 font-medium">Popular Airports</div>
+            </div>
+        ` + popularAirports.map(place => {
+            const icon = 'fas fa-plane';
+            const badgeClass = 'airport-badge';
+            
+            return `
+                <div class="place-suggestion p-3 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center space-x-3" 
+                     onclick="selectPlace('${escapeJs(place.iata_code)}', '${escapeJs(place.name)}', '${escapeJs(place.iata_code)}', '${escapeJs(input.id)}', '${escapeJs(suggestionsDiv.id)}', '${escapeJs(place.type)}')">
+                    <div class="flex-shrink-0">
+                        <i class="${icon} text-gray-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2">
+                            <div class="font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">${escapeHtml(place.name)}</div>
+                            <span class="place-type-badge ${badgeClass} flex-shrink-0">Airport</span>
+                        </div>
+                        <div class="text-sm text-gray-600 whitespace-nowrap overflow-hidden text-ellipsis">${place.iata_code} • ${place.city}, ${place.country}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        suggestionsDiv.innerHTML = html;
+        suggestionsDiv.classList.remove('hidden');
+    } catch (error) {
+        console.error('Failed to load popular airports:', error);
+        suggestionsDiv.classList.add('hidden');
+    }
 }
 
 async function searchPlaces(query, suggestionsDiv, input) {
@@ -368,7 +371,7 @@ function displayPlaceSuggestions(places, suggestionsDiv, input) {
             suggestionsId: suggestionsDiv.id
         });
         
-        const onclickHandler = `selectPlace('${place.iata_code}', '${escapeHtml(displayText)}', '${place.iata_code}', '${input.id}', '${suggestionsDiv.id}', '${place.type}')`;
+        const onclickHandler = `selectPlace('${escapeJs(place.iata_code)}', '${escapeJs(displayText)}', '${escapeJs(place.iata_code)}', '${escapeJs(input.id)}', '${escapeJs(suggestionsDiv.id)}', '${escapeJs(place.type)}')`;
         console.log(`🖱️  Click handler for ${place.name}:`, onclickHandler);
         
         return `
@@ -405,74 +408,13 @@ function escapeHtml(text) {
     return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-function getCountryName(countryCode) {
-    const countries = {
-        'US': 'United States',
-        'GB': 'United Kingdom',
-        'CA': 'Canada',
-        'AU': 'Australia',
-        'DE': 'Germany',
-        'FR': 'France',
-        'IT': 'Italy',
-        'ES': 'Spain',
-        'NL': 'Netherlands',
-        'BE': 'Belgium',
-        'CH': 'Switzerland',
-        'AT': 'Austria',
-        'SE': 'Sweden',
-        'NO': 'Norway',
-        'DK': 'Denmark',
-        'FI': 'Finland',
-        'IE': 'Ireland',
-        'PT': 'Portugal',
-        'GR': 'Greece',
-        'TR': 'Turkey',
-        'PL': 'Poland',
-        'CZ': 'Czech Republic',
-        'HU': 'Hungary',
-        'RO': 'Romania',
-        'BG': 'Bulgaria',
-        'HR': 'Croatia',
-        'SI': 'Slovenia',
-        'SK': 'Slovakia',
-        'LT': 'Lithuania',
-        'LV': 'Latvia',
-        'EE': 'Estonia',
-        'JP': 'Japan',
-        'KR': 'South Korea',
-        'CN': 'China',
-        'IN': 'India',
-        'TH': 'Thailand',
-        'SG': 'Singapore',
-        'MY': 'Malaysia',
-        'ID': 'Indonesia',
-        'PH': 'Philippines',
-        'VN': 'Vietnam',
-        'BR': 'Brazil',
-        'AR': 'Argentina',
-        'MX': 'Mexico',
-        'CL': 'Chile',
-        'CO': 'Colombia',
-        'PE': 'Peru',
-        'UY': 'Uruguay',
-        'ZA': 'South Africa',
-        'EG': 'Egypt',
-        'MA': 'Morocco',
-        'KE': 'Kenya',
-        'NG': 'Nigeria',
-        'RU': 'Russia',
-        'UA': 'Ukraine',
-        'IL': 'Israel',
-        'AE': 'UAE',
-        'SA': 'Saudi Arabia',
-        'QA': 'Qatar',
-        'KW': 'Kuwait',
-        'OM': 'Oman',
-        'JO': 'Jordan',
-        'LB': 'Lebanon',
-        'NZ': 'New Zealand'
-    };
-    return countries[countryCode] || countryCode;
+// Escape text for use in JavaScript strings (for onclick handlers)
+function escapeJs(text) {
+    return text.replace(/\\/g, '\\\\')
+               .replace(/'/g, "\\'")
+               .replace(/"/g, '\\"')
+               .replace(/\n/g, '\\n')
+               .replace(/\r/g, '\\r');
 }
 
 function selectPlace(iataCode, name, cityCode, inputId, suggestionsId, type) {
@@ -534,16 +476,72 @@ function selectPlace(iataCode, name, cityCode, inputId, suggestionsId, type) {
 async function handleFlightSearch(e) {
     e.preventDefault();
     
-    const origin = document.getElementById('origin').getAttribute('data-iata');
-    const destination = document.getElementById('destination').getAttribute('data-iata');
+    const originInput = document.getElementById('origin');
+    const destinationInput = document.getElementById('destination');
+    const origin = originInput ? originInput.getAttribute('data-iata') : null;
+    const destination = destinationInput ? destinationInput.getAttribute('data-iata') : null;
     const departureDate = document.getElementById('departureDate').value;
     const tripType = document.querySelector('input[name="tripType"]:checked').value;
     const returnDate = tripType === 'roundTrip' ? document.getElementById('returnDate').value : null;
     
+    // Debug logging
+    console.log('🔍 Flight Search Validation:', {
+        origin,
+        destination,
+        departureDate,
+        tripType,
+        originInputValue: originInput ? originInput.value : 'INPUT NOT FOUND',
+        destinationInputValue: destinationInput ? destinationInput.value : 'INPUT NOT FOUND',
+        originDataIata: origin,
+        destinationDataIata: destination
+    });
+    
     if (!origin || !destination || !departureDate) {
-        showError('Please fill in all required fields');
+        let missingFields = [];
+        
+        // Remove previous error highlights
+        if (originInput) originInput.classList.remove('border-red-500');
+        if (destinationInput) destinationInput.classList.remove('border-red-500');
+        const departureDateInput = document.getElementById('departureDate');
+        if (departureDateInput) departureDateInput.classList.remove('border-red-500');
+        
+        // Check if user typed but didn't select from dropdown
+        if (!origin) {
+            if (originInput) {
+                originInput.classList.add('border-red-500');
+                if (originInput.value.trim()) {
+                    missingFields.push('Please select origin airport from the dropdown list');
+                } else {
+                    missingFields.push('Origin airport');
+                }
+            }
+        }
+        
+        if (!destination) {
+            if (destinationInput) {
+                destinationInput.classList.add('border-red-500');
+                if (destinationInput.value.trim()) {
+                    missingFields.push('Please select destination airport from the dropdown list');
+                } else {
+                    missingFields.push('Destination airport');
+                }
+            }
+        }
+        
+        if (!departureDate) {
+            if (departureDateInput) departureDateInput.classList.add('border-red-500');
+            missingFields.push('Departure date');
+        }
+        
+        showError(missingFields.length === 1 ? missingFields[0] : 'Please complete: ' + missingFields.join(', '));
         return;
     }
+    
+    // Remove error highlights on successful validation
+    if (originInput) originInput.classList.remove('border-red-500');
+    if (destinationInput) destinationInput.classList.remove('border-red-500');
+    const departureDateInput = document.getElementById('departureDate');
+    if (departureDateInput) departureDateInput.classList.remove('border-red-500');
 
     // Build URL parameters for flights page
     const params = new URLSearchParams();

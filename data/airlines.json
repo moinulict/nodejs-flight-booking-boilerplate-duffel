@@ -1,0 +1,361 @@
+{
+  "airlines": [
+    {
+      "name": "Singapore Airlines",
+      "iata": "SQ",
+      "icao": "SIA",
+      "logo": "/img/airlines/sq.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/SQ.png"
+    },
+    {
+      "name": "Emirates",
+      "iata": "EK",
+      "icao": "UAE",
+      "logo": "/img/airlines/ek.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/EK.png"
+    },
+    {
+      "name": "Qatar Airways",
+      "iata": "QR",
+      "icao": "QTR",
+      "logo": "/img/airlines/qr.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/QR.png"
+    },
+    {
+      "name": "Etihad Airways",
+      "iata": "EY",
+      "icao": "ETD",
+      "logo": "/img/airlines/ey.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/EY.png"
+    },
+    {
+      "name": "Turkish Airlines",
+      "iata": "TK",
+      "icao": "THY",
+      "logo": "/img/airlines/tk.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/TK.png"
+    },
+    {
+      "name": "Cathay Pacific",
+      "iata": "CX",
+      "icao": "CPA",
+      "logo": "/img/airlines/cx.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/CX.png"
+    },
+    {
+      "name": "British Airways",
+      "iata": "BA",
+      "icao": "BAW",
+      "logo": "/img/airlines/ba.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/BA.png"
+    },
+    {
+      "name": "Lufthansa",
+      "iata": "LH",
+      "icao": "DLH",
+      "logo": "/img/airlines/lh.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/LH.png"
+    },
+    {
+      "name": "Air France",
+      "iata": "AF",
+      "icao": "AFR",
+      "logo": "/img/airlines/af.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AF.png"
+    },
+    {
+      "name": "KLM",
+      "iata": "KL",
+      "icao": "KLM",
+      "logo": "/img/airlines/kl.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/KL.png"
+    },
+    {
+      "name": "American Airlines",
+      "iata": "AA",
+      "icao": "AAL",
+      "logo": "/img/airlines/aa.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AA.png"
+    },
+    {
+      "name": "Delta Air Lines",
+      "iata": "DL",
+      "icao": "DAL",
+      "logo": "/img/airlines/dl.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/DL.png"
+    },
+    {
+      "name": "United Airlines",
+      "iata": "UA",
+      "icao": "UAL",
+      "logo": "/img/airlines/ua.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/UA.png"
+    },
+    {
+      "name": "All Nippon Airways",
+      "iata": "NH",
+      "icao": "ANA",
+      "logo": "/img/airlines/nh.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/NH.png"
+    },
+    {
+      "name": "Japan Airlines",
+      "iata": "JL",
+      "icao": "JAL",
+      "logo": "/img/airlines/jl.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/JL.png"
+    },
+    {
+      "name": "Qantas",
+      "iata": "QF",
+      "icao": "QFA",
+      "logo": "/img/airlines/qf.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/QF.png"
+    },
+    {
+      "name": "Air Canada",
+      "iata": "AC",
+      "icao": "ACA",
+      "logo": "/img/airlines/ac.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AC.png"
+    },
+    {
+      "name": "Thai Airways",
+      "iata": "TG",
+      "icao": "THA",
+      "logo": "/img/airlines/tg.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/TG.png"
+    },
+    {
+      "name": "Malaysia Airlines",
+      "iata": "MH",
+      "icao": "MAS",
+      "logo": "/img/airlines/mh.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/MH.png"
+    },
+    {
+      "name": "Korean Air",
+      "iata": "KE",
+      "icao": "KAL",
+      "logo": "/img/airlines/ke.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/KE.png"
+    },
+    {
+      "name": "Asiana Airlines",
+      "iata": "OZ",
+      "icao": "AAR",
+      "logo": "/img/airlines/oz.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/OZ.png"
+    },
+    {
+      "name": "China Southern Airlines",
+      "iata": "CZ",
+      "icao": "CSN",
+      "logo": "/img/airlines/cz.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/CZ.png"
+    },
+    {
+      "name": "China Eastern Airlines",
+      "iata": "MU",
+      "icao": "CES",
+      "logo": "/img/airlines/mu.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/MU.png"
+    },
+    {
+      "name": "Air China",
+      "iata": "CA",
+      "icao": "CCA",
+      "logo": "/img/airlines/ca.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/CA.png"
+    },
+    {
+      "name": "Garuda Indonesia",
+      "iata": "GA",
+      "icao": "GIA",
+      "logo": "/img/airlines/ga.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/GA.png"
+    },
+    {
+      "name": "Biman Bangladesh Airlines",
+      "iata": "BG",
+      "icao": "BBC",
+      "logo": "/img/airlines/bg.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/BG.png"
+    },
+    {
+      "name": "IndiGo",
+      "iata": "6E",
+      "icao": "IGO",
+      "logo": "/img/airlines/6e.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/6E.png"
+    },
+    {
+      "name": "Air India",
+      "iata": "AI",
+      "icao": "AIC",
+      "logo": "/img/airlines/ai.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AI.png"
+    },
+    {
+      "name": "SpiceJet",
+      "iata": "SG",
+      "icao": "SEJ",
+      "logo": "/img/airlines/sg.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/SG.png"
+    },
+    {
+      "name": "Vistara",
+      "iata": "UK",
+      "icao": "VTI",
+      "logo": "/img/airlines/uk.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/UK.png"
+    },
+    {
+      "name": "GoAir",
+      "iata": "G8",
+      "icao": "GOW",
+      "logo": "/img/airlines/g8.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/G8.png"
+    },
+    {
+      "name": "AirAsia",
+      "iata": "AK",
+      "icao": "AXM",
+      "logo": "/img/airlines/ak.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AK.png"
+    },
+    {
+      "name": "Scoot",
+      "iata": "TR",
+      "icao": "TGW",
+      "logo": "/img/airlines/tr.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/TR.png"
+    },
+    {
+      "name": "Jetstar",
+      "iata": "JQ",
+      "icao": "JST",
+      "logo": "/img/airlines/jq.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/JQ.png"
+    },
+    {
+      "name": "Virgin Atlantic",
+      "iata": "VS",
+      "icao": "VIR",
+      "logo": "/img/airlines/vs.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/VS.png"
+    },
+    {
+      "name": "Swiss International Air Lines",
+      "iata": "LX",
+      "icao": "SWR",
+      "logo": "/img/airlines/lx.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/LX.png"
+    },
+    {
+      "name": "Austrian Airlines",
+      "iata": "OS",
+      "icao": "AUA",
+      "logo": "/img/airlines/os.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/OS.png"
+    },
+    {
+      "name": "Brussels Airlines",
+      "iata": "SN",
+      "icao": "DAT",
+      "logo": "/img/airlines/sn.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/SN.png"
+    },
+    {
+      "name": "Finnair",
+      "iata": "AY",
+      "icao": "FIN",
+      "logo": "/img/airlines/ay.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AY.png"
+    },
+    {
+      "name": "Iberia",
+      "iata": "IB",
+      "icao": "IBE",
+      "logo": "/img/airlines/ib.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/IB.png"
+    },
+    {
+      "name": "Aeroflot",
+      "iata": "SU",
+      "icao": "AFL",
+      "logo": "/img/airlines/su.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/SU.png"
+    },
+    {
+      "name": "Saudia",
+      "iata": "SV",
+      "icao": "SVA",
+      "logo": "/img/airlines/sv.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/SV.png"
+    },
+    {
+      "name": "Oman Air",
+      "iata": "WY",
+      "icao": "OMA",
+      "logo": "/img/airlines/wy.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/WY.png"
+    },
+    {
+      "name": "Gulf Air",
+      "iata": "GF",
+      "icao": "GFA",
+      "logo": "/img/airlines/gf.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/GF.png"
+    },
+    {
+      "name": "Kuwait Airways",
+      "iata": "KU",
+      "icao": "KAC",
+      "logo": "/img/airlines/ku.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/KU.png"
+    },
+    {
+      "name": "EgyptAir",
+      "iata": "MS",
+      "icao": "MSR",
+      "logo": "/img/airlines/ms.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/MS.png"
+    },
+    {
+      "name": "South African Airways",
+      "iata": "SA",
+      "icao": "SAA",
+      "logo": "/img/airlines/sa.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/SA.png"
+    },
+    {
+      "name": "Ethiopian Airlines",
+      "iata": "ET",
+      "icao": "ETH",
+      "logo": "/img/airlines/et.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/ET.png"
+    },
+    {
+      "name": "Kenya Airways",
+      "iata": "KQ",
+      "icao": "KQA",
+      "logo": "/img/airlines/kq.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/KQ.png"
+    },
+    {
+      "name": "LATAM Airlines",
+      "iata": "LA",
+      "icao": "LAN",
+      "logo": "/img/airlines/la.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/LA.png"
+    },
+    {
+      "name": "Aeromexico",
+      "iata": "AM",
+      "icao": "AMX",
+      "logo": "/img/airlines/am.png",
+      "logo_cdn": "https://images.kiwi.com/airlines/64/AM.png"
+    }
+  ]
+}

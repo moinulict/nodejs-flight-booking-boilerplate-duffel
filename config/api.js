@@ -22,11 +22,27 @@ const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
 // External API configuration
 const EXTERNAL_API_BASE = process.env.API_BASE_URL || 'https://api.tripzip.ai';
 
+// Amadeus API configuration
+const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY;
+const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET;
+const AMADEUS_API_URL = process.env.AMADEUS_API_URL || 'https://test.api.amadeus.com';
+
+const amadeusAPI = axios.create({
+  baseURL: AMADEUS_API_URL,
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }
+});
+
 module.exports = {
   duffelAPI,
   DUFFEL_API_BASE,
   API_TOKEN,
   stripe,
   STRIPE_PUBLISHABLE_KEY,
-  EXTERNAL_API_BASE
+  EXTERNAL_API_BASE,
+  amadeusAPI,
+  AMADEUS_API_KEY,
+  AMADEUS_API_SECRET,
+  AMADEUS_API_URL
 };
