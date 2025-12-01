@@ -7,7 +7,7 @@ const router = express.Router();
 // Create TripZip booking endpoint
 router.post('/create-tripzip-booking', async (req, res) => {
   try {
-    const { passengers, flightDetails, amount, currency, offer_id } = req.body;
+    const { passengers, flightDetails, amount, currency, offer_id, data_source } = req.body;
     
     // Get authorization token from request headers
     const authToken = req.headers.authorization;
@@ -20,6 +20,7 @@ router.post('/create-tripzip-booking', async (req, res) => {
     
     console.log('🎫 Creating TripZip booking - Request received:');
     console.log('🔑 Auth token found:', authToken ? 'Yes' : 'No');
+    console.log('🔍 Data source:', data_source || 'duffel');
     console.log('📥 Incoming data:', JSON.stringify(req.body, null, 2));
     
     // Create product name and description from flight details
@@ -36,12 +37,14 @@ router.post('/create-tripzip-booking', async (req, res) => {
       plan_id: "",
       currency: currency.toLowerCase(),
       booking_type: "flight",
+      data_source: data_source || 'duffel', // Track the data source (duffel, amadeus, etc.)
       provider_data: {
         passengers: passengers,
         flightDetails: flightDetails,
         amount: amount,
         currency: currency,
-        offer_id: offer_id
+        offer_id: offer_id,
+        data_source: data_source || 'duffel' // Also include in provider_data for detailed tracking
       },
       booking_details: {
         "key_0": "Test"

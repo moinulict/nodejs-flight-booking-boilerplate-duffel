@@ -180,12 +180,17 @@
                     const bookingStatus = statusResponse.data.data.booking?.status;
                     console.log('📊 Booking status:', bookingStatus);
                     
+                    // Extract data_source from TripZip booking response
+                    const tripzipData = statusResponse.data.data.booking;
+                    const dataSource = tripzipData?.provider_data?.data_source || 'duffel';
+                    console.log('🔍 Data source from TripZip:', dataSource);
+                    
                     // Check if payment is successful (pending or completed)
                     if (bookingStatus !== 'pending' && bookingStatus !== 'success' && bookingStatus !== 'completed') {
                         throw new Error(`Payment not successful. Status: ${bookingStatus}`);
                     }
 
-                    console.log('✅ Payment verified, creating Duffel booking...');
+                    console.log(`✅ Payment verified, creating ${dataSource.toUpperCase()} booking...`);
                     
                     // Step 2: Validate and prepare Duffel booking data
                     console.log('📝 Preparing Duffel booking with data:', bookingData);
@@ -224,23 +229,27 @@
                     
                     console.log('✅ Passenger data validation passed');
                     
-                    // Step 3: Create Duffel booking
-                    let duffelResponse;
+                    // Step 3: Create flight booking (Duffel or Amadeus based on data_source)
+                    let bookingResponse;
                     try {
-                        // ✅ CRITICAL: PRESERVE passenger IDs from original offer request (required by Duffel!)
-                        // Validate that passengers have the required Duffel ID field
-                        const passengersWithIds = bookingData.passengers.filter(p => p.id);
-                        if (passengersWithIds.length !== bookingData.passengers.length) {
-                            console.error('❌ Some passengers missing Duffel IDs:', bookingData.passengers);
-                            throw new Error('Some passengers are missing required Duffel IDs from the original offer request. Please restart the booking process.');
+                        // Validate passenger IDs based on data source
+                        if (dataSource === 'duffel') {
+                            // ✅ CRITICAL: PRESERVE passenger IDs from original offer request (required by Duffel!)
+                            // Validate that passengers have the required Duffel ID field
+                            const passengersWithIds = bookingData.passengers.filter(p => p.id && !p.id.startsWith('amadeus_'));
+                            if (passengersWithIds.length !== bookingData.passengers.length) {
+                                console.error('❌ Some passengers missing Duffel IDs:', bookingData.passengers);
+                                throw new Error('Some passengers are missing required Duffel IDs from the original offer request. Please restart the booking process.');
+                            }
+                            console.log('✅ All passengers have Duffel IDs:', passengersWithIds);
+                        } else if (dataSource === 'amadeus') {
+                            console.log('✅ Amadeus booking - using passenger data as provided');
                         }
                         
-                        console.log('✅ All passengers have Duffel IDs:', passengersWithIds);
-                        
-                        const duffelPayload = {
+                        const bookingPayload = {
                             offer_id: bookingData.selectedFlight?.id || bookingData.offer_id,
                             passengers: bookingData.passengers.map(passenger => ({
-                                // PRESERVE the Duffel ID (CRITICAL!)
+                                // PRESERVE the passenger ID (required for Duffel, informational for Amadeus)
                                 id: passenger.id,
                                 type: passenger.type,
                                 title: passenger.title,
@@ -254,42 +263,53 @@
                                 loyalty_programme_accounts: passenger.loyalty_programme_accounts || []
                             })),
                             total_amount: bookingData.selectedFlight?.total_amount || bookingData.total_amount,
-                            total_currency: bookingData.selectedFlight?.total_currency || bookingData.total_currency
+                            total_currency: bookingData.selectedFlight?.total_currency || bookingData.total_currency,
+                            data_source: dataSource // Pass the data source to backend
                         };
                         
-                        console.log('📋 Duffel booking payload:', JSON.stringify(duffelPayload, null, 2));
-                        console.log('🎫 Offer ID:', duffelPayload.offer_id);
-                        console.log('👥 Passengers count:', duffelPayload.passengers?.length);
-                        console.log('💰 Total amount:', duffelPayload.total_amount, duffelPayload.total_currency);
+                        console.log(`📋 ${dataSource.toUpperCase()} booking payload:`, JSON.stringify(bookingPayload, null, 2));
+                        console.log('🎫 Offer ID:', bookingPayload.offer_id);
+                        console.log('👥 Passengers count:', bookingPayload.passengers?.length);
+                        console.log('💰 Total amount:', bookingPayload.total_amount, bookingPayload.total_currency);
+                        console.log('🔍 Data source:', bookingPayload.data_source);
                         
                         // Log passenger structure for debugging
-                        if (duffelPayload.passengers && duffelPayload.passengers.length > 0) {
-                            console.log('👤 First passenger sample:', JSON.stringify(duffelPayload.passengers[0], null, 2));
+                        if (bookingPayload.passengers && bookingPayload.passengers.length > 0) {
+                            console.log('👤 First passenger sample:', JSON.stringify(bookingPayload.passengers[0], null, 2));
                         }
                         
-                        console.log('🚀 Making Duffel booking API call...');
-                        duffelResponse = await axios.post('/api/book-flight', duffelPayload);
+                        console.log(`🚀 Making ${dataSource.toUpperCase()} booking API call...`);
+                        bookingResponse = await axios.post('/api/book-flight', bookingPayload);
 
-                        console.log('📨 Duffel API response status:', duffelResponse.status);
-                        console.log('📋 Duffel API response data:', JSON.stringify(duffelResponse.data, null, 2));
+                        console.log(`📨 ${dataSource.toUpperCase()} API response status:`, bookingResponse.status);
+                        console.log(`📋 ${dataSource.toUpperCase()} API response data:`, JSON.stringify(bookingResponse.data, null, 2));
 
-                        // Check if Duffel booking was successful (Duffel returns data.data.id for successful bookings)
-                        if (!duffelResponse.data.data || !duffelResponse.data.data.id) {
-                            console.error('❌ Invalid Duffel response structure:', duffelResponse.data);
-                            throw new Error('Failed to create Duffel booking - Invalid response');
+                        // Check response based on data source
+                        if (dataSource === 'duffel') {
+                            // Check if Duffel booking was successful (Duffel returns data.data.id for successful bookings)
+                            if (!bookingResponse.data.data || !bookingResponse.data.data.id) {
+                                console.error('❌ Invalid Duffel response structure:', bookingResponse.data);
+                                throw new Error('Failed to create Duffel booking - Invalid response');
+                            }
+                            console.log('🎉 Duffel booking created successfully!', bookingResponse.data.data.id);
+                        } else if (dataSource === 'amadeus') {
+                            // Check if Amadeus booking was successful
+                            if (!bookingResponse.data.success && !bookingResponse.data.data) {
+                                console.error('❌ Invalid Amadeus response structure:', bookingResponse.data);
+                                throw new Error('Failed to create Amadeus booking - Invalid response');
+                            }
+                            console.log('🎉 Amadeus booking created successfully!', bookingResponse.data.data?.id);
                         }
-
-                        console.log('🎉 Duffel booking created successfully!', duffelResponse.data.data.id);
                         
                         // Cleanup localStorage before showing success (in case showSuccess has DOM issues)
                         localStorage.removeItem('tripzip_booking_id');
                         localStorage.removeItem('pending_booking_data');
                         localStorage.removeItem('bookingData');
                         
-                        // Show success with booking details (pass the actual Duffel order data)
+                        // Show success with booking details (pass the actual booking order data)
                         // Wrap in try-catch to prevent DOM errors from triggering main error handler
                         try {
-                            this.showSuccess(duffelResponse.data.data, bookingData, statusResponse.data.data);
+                            this.showSuccess(bookingResponse.data.data || bookingResponse.data, bookingData, statusResponse.data.data);
                         } catch (displayError) {
                             console.warn('⚠️ Minor display issue after successful booking:', displayError.message);
                             // Booking was successful, just log display issues without showing error to user
@@ -298,16 +318,16 @@
                         // Exit the function successfully - no need to continue to outer catch
                         return;
                         
-                    } catch (duffelError) {
-                        console.error('❌ Duffel booking failed:', duffelError.message);
-                        console.error('❌ Error details:', duffelError.response?.data || duffelError);
-                        console.error('❌ Error status:', duffelError.response?.status);
-                        console.error('❌ Error headers:', duffelError.response?.headers);
+                    } catch (bookingError) {
+                        console.error(`❌ ${dataSource.toUpperCase()} booking failed:`, bookingError.message);
+                        console.error('❌ Error details:', bookingError.response?.data || bookingError);
+                        console.error('❌ Error status:', bookingError.response?.status);
+                        console.error('❌ Error headers:', bookingError.response?.headers);
                         
                         // Provide more specific error message
-                        const errorMsg = duffelError.response?.data?.message || 
-                                       duffelError.response?.data?.error || 
-                                       duffelError.message || 
+                        const errorMsg = bookingError.response?.data?.message || 
+                                       bookingError.response?.data?.error || 
+                                       bookingError.message || 
                                        'Unknown Duffel booking error';
                         throw new Error(`Duffel booking failed: ${errorMsg}`);
                     }
@@ -392,28 +412,6 @@
                 
                 successSection.innerHTML = `
                     <div class="booking-confirmation bg-white rounded-lg shadow-lg p-8 max-w-6xl mx-auto">
-                        <!-- Action Buttons at Top -->
-                        <div class="flex flex-col sm:flex-row gap-4 justify-end border-b pb-6 mb-6">
-                            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                                </svg>
-                                Print Booking
-                            </button>
-                            <a href="/dashboard/" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V5a2 2 0 012-2h14a2 2 0 012 2v2"></path>
-                                </svg>
-                                Go to Dashboard
-                            </a>
-                            <a href="/flights.html" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                Search More Flights
-                            </a>
-                        </div>
-                        
                         <!-- Header -->
                         <div class="text-center border-b pb-6 mb-6">
                             <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
@@ -517,6 +515,28 @@
                                 <li>• Check baggage restrictions and airline policies before travel</li>
                                 <li>• Keep this confirmation for your records</li>
                             </ul>
+                        </div>
+
+                        <!-- Action Buttons at Bottom Center -->
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center border-t pt-6 mt-6">
+                            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center no-print">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                </svg>
+                                Print Booking
+                            </button>
+                            <a href="/dashboard/" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center no-print">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V5a2 2 0 012-2h14a2 2 0 012 2v2"></path>
+                                </svg>
+                                Go to Dashboard
+                            </a>
+                            <a href="/flights.html" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center no-print">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                Search More Flights
+                            </a>
                         </div>
                     </div>
                 `;

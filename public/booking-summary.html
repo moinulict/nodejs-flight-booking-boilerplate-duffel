@@ -466,36 +466,54 @@
                         const sliceLabel = isRoundTrip ? (sliceIndex === 0 ? 'Outbound' : 'Return') : '';
                         
                         slice.segments.forEach((segment, segIndex) => {
-                            const departureTime = new Date(segment.departing_at).toLocaleTimeString('en-US', {
+                            // Handle both Duffel and Amadeus formats
+                            const departingAt = segment.departing_at || segment.departure?.time;
+                            const arrivingAt = segment.arriving_at || segment.arrival?.time;
+                            
+                            const departureTime = new Date(departingAt).toLocaleTimeString('en-US', {
                                 hour: '2-digit',
                                 minute: '2-digit',
                                 hour12: false
                             });
                             
-                            const arrivalTime = new Date(segment.arriving_at).toLocaleTimeString('en-US', {
+                            const arrivalTime = new Date(arrivingAt).toLocaleTimeString('en-US', {
                                 hour: '2-digit',
                                 minute: '2-digit',
                                 hour12: false
                             });
                             
-                            const departureDate = new Date(segment.departing_at).toLocaleDateString('en-US', {
+                            const departureDate = new Date(departingAt).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric'
                             });
                             
-                            const airline = segment.marketing_carrier?.name || segment.operating_carrier?.name || 'Unknown';
-                            const flightNumber = segment.marketing_carrier_flight_number || segment.operating_carrier_flight_number || '';
+                            // Handle both Duffel and Amadeus airline formats
+                            const airline = segment.marketing_carrier?.name || 
+                                          segment.airline?.name || 
+                                          segment.operating_carrier?.name || 
+                                          segment.operating_airline?.name || 
+                                          'Unknown';
+                            const flightNumber = segment.marketing_carrier_flight_number || 
+                                               segment.flight_number || 
+                                               segment.operating_carrier_flight_number || 
+                                               '';
                             
                             // Calculate duration - handle multiple formats
                             let durationText = '';
                             if (segment.duration) {
-                                // If duration is a string (ISO format like "PT1H5M")
+                                // If duration is a string (ISO format like "PT1H5M" or "1h 5m")
                                 if (typeof segment.duration === 'string') {
-                                    const match = segment.duration.match(/PT(\d+H)?(\d+M)?/);
-                                    if (match) {
-                                        const hours = match[1] ? parseInt(match[1]) : 0;
-                                        const minutes = match[2] ? parseInt(match[2]) : 0;
-                                        durationText = `${hours}h ${minutes}m`;
+                                    // Check if already formatted like "1h 5m"
+                                    if (segment.duration.includes('h') && segment.duration.includes('m')) {
+                                        durationText = segment.duration;
+                                    } else {
+                                        // Parse ISO format "PT1H5M"
+                                        const match = segment.duration.match(/PT(\d+H)?(\d+M)?/);
+                                        if (match) {
+                                            const hours = match[1] ? parseInt(match[1]) : 0;
+                                            const minutes = match[2] ? parseInt(match[2]) : 0;
+                                            durationText = `${hours}h ${minutes}m`;
+                                        }
                                     }
                                 } else {
                                     // If duration is in minutes (number)
@@ -507,8 +525,8 @@
                             
                             // Fallback: calculate from departure and arrival times if duration is missing
                             if (!durationText) {
-                                const depDate = new Date(segment.departing_at);
-                                const arrDate = new Date(segment.arriving_at);
+                                const depDate = new Date(departingAt);
+                                const arrDate = new Date(arrivingAt);
                                 const durationMs = arrDate.getTime() - depDate.getTime();
                                 const totalMinutes = Math.floor(durationMs / 60000);
                                 const hours = Math.floor(totalMinutes / 60);
@@ -521,13 +539,13 @@
                                 <div class="border-b border-gray-100 pb-3 mb-3">
                                     <div class="text-xs text-gray-500 mb-1">${departureDate}</div>
                                     <div class="flex items-center justify-between mb-1">
-                                        <div class="text-sm font-bold text-gray-800">${segment.origin.iata_code}</div>
+                                        <div class="text-sm font-bold text-gray-800">${segment.origin?.iata_code || segment.departure?.iata_code}</div>
                                         <div class="flex-1 mx-2 border-t border-gray-300 relative">
                                             <svg class="w-3 h-3 text-orange-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
                                             </svg>
                                         </div>
-                                        <div class="text-sm font-bold text-gray-800">${segment.destination.iata_code}</div>
+                                        <div class="text-sm font-bold text-gray-800">${segment.destination?.iata_code || segment.arrival?.iata_code}</div>
                                     </div>
                                     <div class="flex items-center justify-between text-xs">
                                         <div class="text-gray-600">${departureTime}</div>
@@ -1427,7 +1445,8 @@
                         flightDetails: this.bookingData.flightDetails,
                         amount: adjustedAmount,
                         currency: this.bookingData.total_currency,
-                        offer_id: this.bookingData.offer_id
+                        offer_id: this.bookingData.offer_id,
+                        data_source: this.bookingData.data_source || this.bookingData.offer?.source || 'duffel' // Track data source for future reference
                     };
                     
                     // Create TripZip booking
@@ -1479,7 +1498,7 @@
          * Complete Duffel booking after successful Stripe payment
          */
         async function completeBookingAfterPayment(paymentIntentId) {
-            console.log('💳 Completing Duffel booking after successful payment:', paymentIntentId);
+            console.log('💳 Completing flight booking after successful payment:', paymentIntentId);
             
             try {
                 // Show loading state (with fallback if LoaderManager not loaded yet)
@@ -1498,25 +1517,43 @@
                 const bookingData = JSON.parse(storedBookingData);
                 console.log('📋 Retrieved booking data:', bookingData);
                 
-                // Validate that passengers have Duffel IDs
+                // Determine data source - check multiple possible locations
+                const dataSource = bookingData.offer?.source || 
+                                 bookingData.data_source || 
+                                 bookingData.selectedOffer?.source || 
+                                 bookingData.selectedOffer?.data_source || 
+                                 'duffel';
+                console.log('🔍 Flight data source:', dataSource);
+                
+                // Validate passengers
                 if (!bookingData.passengers || bookingData.passengers.length === 0) {
                     throw new Error('No passengers found in booking data');
                 }
                 
-                // Check if passengers have the required Duffel ID field
-                const passengersWithIds = bookingData.passengers.filter(p => p.id);
-                if (passengersWithIds.length !== bookingData.passengers.length) {
-                    console.error('❌ Some passengers missing Duffel IDs:', bookingData.passengers);
-                    throw new Error('Some passengers are missing required Duffel IDs');
+                // Validate passenger IDs based on data source
+                if (dataSource === 'duffel') {
+                    // Duffel requires passenger IDs from the offer
+                    const passengersWithIds = bookingData.passengers.filter(p => p.id && !p.id.startsWith('amadeus_'));
+                    if (passengersWithIds.length !== bookingData.passengers.length) {
+                        console.error('❌ Some passengers missing Duffel IDs:', bookingData.passengers);
+                        throw new Error('Some passengers are missing required Duffel IDs. Please restart the booking process.');
+                    }
+                    console.log('✅ All passengers have Duffel IDs:', passengersWithIds);
+                } else if (dataSource === 'amadeus') {
+                    // Amadeus doesn't require special IDs from offer
+                    console.log('✅ Amadeus booking - using passenger data as provided');
+                } else {
+                    console.warn('⚠️ Unknown data source:', dataSource);
                 }
                 
-                console.log('✅ All passengers have Duffel IDs:', passengersWithIds);
+                // Prepare booking payload for Flight Booking API
+                // Handle both data structures: direct properties and selectedOffer wrapper
+                const offerData = bookingData.selectedOffer || bookingData;
                 
-                // Prepare booking payload for Duffel API
                 const bookingPayload = {
-                    offer_id: bookingData.selectedOffer.id,
+                    offer_id: offerData.id || offerData.offer_id,
                     passengers: bookingData.passengers.map(passenger => ({
-                        // Preserve the Duffel ID (CRITICAL!)
+                        // Preserve IDs (required for Duffel, optional for Amadeus)
                         id: passenger.id,
                         type: passenger.type,
                         title: passenger.title,
@@ -1529,14 +1566,16 @@
                         age: passenger.age,
                         loyalty_programme_accounts: passenger.loyalty_programme_accounts || []
                     })),
-                    total_amount: bookingData.selectedOffer.total_amount,
-                    total_currency: bookingData.selectedOffer.total_currency,
-                    payment_intent_id: paymentIntentId // Include payment reference
+                    total_amount: offerData.total_amount,
+                    total_currency: offerData.total_currency,
+                    payment_intent_id: paymentIntentId, // Include payment reference
+                    data_source: dataSource // Pass the data source to backend
                 };
                 
-                console.log('📤 Sending Duffel booking request:', bookingPayload);
+                console.log('📤 Sending flight booking request:', bookingPayload);
+                console.log('🔍 Booking through:', dataSource.toUpperCase());
                 
-                // Make the actual Duffel booking request
+                // Make the actual flight booking request (backend routes to Duffel or Amadeus based on data_source)
                 const response = await axios.post('/api/book-flight', bookingPayload, {
                     headers: {
                         'Content-Type': 'application/json'
@@ -1544,7 +1583,7 @@
                     timeout: 30000 // 30 second timeout
                 });
                 
-                console.log('✅ Duffel booking successful:', response.data);
+                console.log(`✅ ${dataSource.toUpperCase()} booking successful:`, response.data);
                 
                 // Store the booking result
                 localStorage.setItem('booking_confirmation', JSON.stringify(response.data));
@@ -1559,7 +1598,7 @@
                 showBookingSuccess(response.data);
                 
             } catch (error) {
-                console.error('❌ Duffel booking failed:', error);
+                console.error('❌ Flight booking failed:', error);
                 if (typeof LoaderManager !== 'undefined' && LoaderManager.hideGlobalLoader) {
                     LoaderManager.hideGlobalLoader();
                 }

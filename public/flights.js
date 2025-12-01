@@ -40,6 +40,19 @@ async function loadAirlinesData() {
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Flights page loaded, initializing...');
     
+    // Set minimum date for departure to today (using local timezone to avoid date shift issues)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    
+    const departureDateInput = document.getElementById('departureDate');
+    if (departureDateInput) {
+        departureDateInput.setAttribute('min', todayStr);
+        console.log('📅 Set minimum departure date to:', todayStr);
+    }
+    
     // Load airlines data for logos
     await loadAirlinesData();
     
@@ -99,13 +112,42 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.querySelectorAll('input[name="tripType"]').forEach(radio => {
         radio.addEventListener('change', function() {
             const returnDateContainer = document.getElementById('returnDateContainer');
+            const returnDateInput = document.getElementById('returnDate');
+            const departureInput = document.getElementById('departureDate');
+            
             if (this.value === 'roundTrip') {
                 returnDateContainer.classList.remove('hidden');
+                
+                // Set minimum return date to departure date if departure is selected
+                if (departureInput.value) {
+                    returnDateInput.setAttribute('min', departureInput.value);
+                    
+                    // If return date is already set but is earlier than departure, clear it
+                    if (returnDateInput.value && returnDateInput.value < departureInput.value) {
+                        returnDateInput.value = '';
+                    }
+                }
             } else {
                 returnDateContainer.classList.add('hidden');
-                document.getElementById('returnDate').value = '';
+                returnDateInput.value = '';
+                returnDateInput.removeAttribute('min');
             }
         });
+    });
+    
+    // Update return date minimum when departure date changes
+    document.getElementById('departureDate').addEventListener('change', function() {
+        const returnDateInput = document.getElementById('returnDate');
+        const roundTripRadio = document.querySelector('input[name="tripType"][value="roundTrip"]');
+        
+        if (roundTripRadio && roundTripRadio.checked) {
+            returnDateInput.setAttribute('min', this.value);
+            
+            // If return date is already set but is earlier than new departure date, clear it
+            if (returnDateInput.value && returnDateInput.value < this.value) {
+                returnDateInput.value = '';
+            }
+        }
     });
 
     // Price range sliders
@@ -526,6 +568,12 @@ async function initializeFromURL() {
         if (returnDateInput) {
             returnDateInput.value = returnDate;
             document.getElementById('returnDateContainer').classList.remove('hidden');
+            
+            // Set minimum return date to departure date
+            if (outboundDate) {
+                returnDateInput.setAttribute('min', outboundDate);
+            }
+            
             console.log('✅ Set return date:', returnDate);
         }
     }
@@ -1447,25 +1495,75 @@ function redirectToBookingSummary(offer) {
     console.log('🧹 Cleared old booking data');
     
     // CRITICAL: Get passenger IDs from the offer - these are required for Duffel booking
-    const passengersFromOffer = offer.passengers || [];
-    console.log('👥 Passengers from selected offer (with IDs):', passengersFromOffer);
+    // For Amadeus, we'll construct passenger list from search params since Amadeus doesn't provide passenger IDs
+    let passengersFromOffer = [];
+    
+    if (offer.source === 'duffel') {
+        // Duffel: Use passengers with IDs from the offer
+        passengersFromOffer = offer.passengers || [];
+        console.log('👥 Duffel passengers from offer (with IDs):', passengersFromOffer);
+    } else if (offer.source === 'amadeus') {
+        // Amadeus: Create passenger list from search parameters
+        console.log('👥 Amadeus flight - creating passengers from search params');
+        
+        // Add adults
+        for (let i = 0; i < adults; i++) {
+            passengersFromOffer.push({
+                type: 'adult',
+                id: `amadeus_adult_${i + 1}` // Amadeus doesn't use Duffel IDs
+            });
+        }
+        
+        // Add children
+        for (let i = 0; i < children; i++) {
+            passengersFromOffer.push({
+                type: 'child',
+                id: `amadeus_child_${i + 1}`
+            });
+        }
+        
+        // Add infants
+        for (let i = 0; i < infants; i++) {
+            passengersFromOffer.push({
+                type: 'infant_without_seat',
+                id: `amadeus_infant_${i + 1}`
+            });
+        }
+        
+        console.log('👥 Created Amadeus passengers:', passengersFromOffer);
+    } else {
+        // Fallback for other sources
+        passengersFromOffer = offer.passengers || [];
+        console.log('👥 Passengers from offer (unknown source):', passengersFromOffer);
+    }
     
     // Prepare booking data for the summary page
     const firstSeg = offer.slices[0].segments[0];
     const originIata = firstSeg.departure?.iata_code || firstSeg.origin?.iata_code || 'N/A';
     const destIata = firstSeg.arrival?.iata_code || firstSeg.destination?.iata_code || 'N/A';
     const airline = firstSeg.airline?.name || firstSeg.marketing_carrier?.name || firstSeg.operating_carrier?.name || 'Unknown';
+    
+    // Extract airline IATA code - handle both normalized Amadeus (airline.code) and Duffel (marketing_carrier.iata_code)
+    const airlineIata = firstSeg.airline?.code || // Amadeus normalized format
+                        firstSeg.airline?.iata_code || // Duffel format via airline object
+                        firstSeg.marketing_carrier?.iata_code || // Duffel original format
+                        firstSeg.operating_carrier?.iata_code || 
+                        null;
+    
     const departureTime = firstSeg.departure?.time || firstSeg.departing_at;
+    
+    console.log('✈️ Airline details - Name:', airline, 'IATA:', airlineIata);
     
     const bookingData = {
         offer_id: offer.id,
         total_amount: offer.total_amount,
         total_currency: offer.total_currency,
-        data_source: 'duffel', // Track the flight data source (duffel, amadeus, sabre, etc.)
+        data_source: offer.source || 'duffel', // Track the flight data source (duffel, amadeus, sabre, etc.)
         offer: offer, // Store complete offer for detailed display
         flightDetails: {
             route: `${originIata} → ${destIata}`,
             airline: airline,
+            airlineCode: airlineIata, // Add airline IATA code
             departure: departureTime
         },
         searchData: {

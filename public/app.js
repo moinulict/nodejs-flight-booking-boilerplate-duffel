@@ -18,10 +18,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeForm() {
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('departureDate').setAttribute('min', today);
-    document.getElementById('returnDate').setAttribute('min', today);
+    // Set minimum date to today (using local timezone to avoid date shift issues)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    
+    document.getElementById('departureDate').setAttribute('min', todayStr);
+    document.getElementById('returnDate').setAttribute('min', todayStr);
+    
+    console.log('📅 Set minimum date to:', todayStr);
 }
 
 function setupEventListeners() {
@@ -64,15 +71,6 @@ function setupEventListeners() {
     
     // Booking form submission
     document.getElementById('bookingForm').addEventListener('submit', handleBookingSubmission);
-    
-    // Update return date minimum when departure date changes
-    document.getElementById('departureDate').addEventListener('change', function() {
-        const returnDateInput = document.getElementById('returnDate');
-        returnDateInput.setAttribute('min', this.value);
-        if (returnDateInput.value && returnDateInput.value < this.value) {
-            returnDateInput.value = '';
-        }
-    });
 }
 
 function setDefaultDates() {
@@ -537,11 +535,38 @@ async function handleFlightSearch(e) {
         return;
     }
     
+    // Validate return date for round trips
+    if (tripType === 'roundTrip') {
+        const returnDateInput = document.getElementById('returnDate');
+        
+        // Check if return date is provided
+        if (!returnDate) {
+            if (returnDateInput) returnDateInput.classList.add('border-red-500');
+            showError('Please select a return date for round trip');
+            return;
+        }
+        
+        // Check if return date is earlier than departure date
+        const departureDateTime = new Date(departureDate);
+        const returnDateTime = new Date(returnDate);
+        
+        if (returnDateTime < departureDateTime) {
+            if (returnDateInput) returnDateInput.classList.add('border-red-500');
+            showError('Return date cannot be earlier than departure date');
+            return;
+        }
+        
+        // Remove error highlight if validation passes
+        if (returnDateInput) returnDateInput.classList.remove('border-red-500');
+    }
+    
     // Remove error highlights on successful validation
     if (originInput) originInput.classList.remove('border-red-500');
     if (destinationInput) destinationInput.classList.remove('border-red-500');
     const departureDateInput = document.getElementById('departureDate');
     if (departureDateInput) departureDateInput.classList.remove('border-red-500');
+    const returnDateInput = document.getElementById('returnDate');
+    if (returnDateInput) returnDateInput.classList.remove('border-red-500');
 
     // Build URL parameters for flights page
     const params = new URLSearchParams();

@@ -415,15 +415,27 @@
         const roundTripRadio = document.getElementById('roundTripRadio');
         const returnDateContainer = document.getElementById('returnDateContainer');
         const returnDateInput = document.getElementById('returnDate');
+        const departureInput = document.getElementById('departureDate');
 
         function updateReturnDateVisibility() {
             if (oneWayRadio.checked) {
                 returnDateContainer.style.display = 'none';
                 returnDateInput.value = '';
                 returnDateInput.removeAttribute('required');
+                returnDateInput.removeAttribute('min');
             } else {
                 returnDateContainer.style.display = 'block';
                 returnDateInput.setAttribute('required', 'required');
+                
+                // Set minimum return date to departure date if departure is selected
+                if (departureInput.value) {
+                    returnDateInput.setAttribute('min', departureInput.value);
+                    
+                    // If return date is already set but is earlier than departure, clear it
+                    if (returnDateInput.value && returnDateInput.value < departureInput.value) {
+                        returnDateInput.value = '';
+                    }
+                }
             }
         }
 
@@ -433,6 +445,18 @@
         // Add event listeners
         oneWayRadio.addEventListener('change', updateReturnDateVisibility);
         roundTripRadio.addEventListener('change', updateReturnDateVisibility);
+        
+        // Update return date min when departure date changes
+        departureInput.addEventListener('change', function() {
+            if (roundTripRadio.checked) {
+                returnDateInput.setAttribute('min', this.value);
+                
+                // If return date is already set but is earlier than new departure date, clear it
+                if (returnDateInput.value && returnDateInput.value < this.value) {
+                    returnDateInput.value = '';
+                }
+            }
+        });
     </script>
 
     <!-- Footer -->

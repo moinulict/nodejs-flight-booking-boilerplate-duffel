@@ -1,6 +1,75 @@
 // Cache for airport data (loaded from persistent data source)
 window.airportDataCache = {};
 
+// Cache for airline data
+window.airlineDataCache = {};
+
+// Load airline data from API
+async function loadAirlineDataCache() {
+    try {
+        const response = await axios.get('/api/airlines');
+        const airlines = response.data?.data || response.data?.airlines || [];
+        
+        // Create a map for quick lookup by IATA code and name
+        airlines.forEach(airline => {
+            // Index by IATA code (uppercase)
+            if (airline.iata) {
+                window.airlineDataCache[airline.iata.toUpperCase()] = airline;
+            }
+            // Index by name (uppercase) for flexible matching
+            if (airline.name) {
+                window.airlineDataCache[airline.name.toUpperCase()] = airline;
+            }
+        });
+        
+        console.log(`✈️ Airline data cache loaded: ${airlines.length} airlines`);
+    } catch (error) {
+        console.error('❌ Failed to load airline cache:', error);
+    }
+}
+
+// Get airline logo by name or IATA code
+function getAirlineLogo(airlineName) {
+    if (!airlineName || !window.airlineDataCache) {
+        return null;
+    }
+    
+    const searchKey = airlineName.toUpperCase().trim();
+    
+    // Try exact match first (by name or IATA)
+    let airline = window.airlineDataCache[searchKey];
+    
+    // If not found, try partial name matching
+    if (!airline) {
+        const cacheKeys = Object.keys(window.airlineDataCache);
+        for (const key of cacheKeys) {
+            const cachedAirline = window.airlineDataCache[key];
+            // Check if the search term contains or is contained in the airline name
+            if (cachedAirline.name && (
+                cachedAirline.name.toUpperCase().includes(searchKey) || 
+                searchKey.includes(cachedAirline.name.toUpperCase())
+            )) {
+                airline = cachedAirline;
+                break;
+            }
+        }
+    }
+    
+    // If still not found, try to extract IATA code from the airline name
+    if (!airline) {
+        const words = airlineName.split(/[\s-]/);
+        for (const word of words) {
+            const cleanWord = word.trim().toUpperCase();
+            if (cleanWord.length === 2 && /^[A-Z]{2}$/.test(cleanWord)) {
+                airline = window.airlineDataCache[cleanWord];
+                if (airline) break;
+            }
+        }
+    }
+    
+    return airline?.logo_cdn || null;
+}
+
 // Load airport data cache from API
 async function loadAirportDataCache() {
     try {
@@ -59,8 +128,9 @@ class BookingsManager {
         initNavigation();
         initDashboardSidebar('bookings');
 
-        // Load airport data cache
+        // Load airport and airline data caches
         await loadAirportDataCache();
+        await loadAirlineDataCache();
 
         this.setupEventListeners();
         await this.loadBookings();
@@ -222,11 +292,15 @@ class BookingsManager {
         // Extract route information
         const route = flightDetails.route || 'Route not available';
         const airline = flightDetails.airline || 'Airline not available';
+        const airlineCode = flightDetails.airlineCode || null; // Get airline IATA code
         const departureTime = flightDetails.departure || booking.created_at;
 
         // Format amount
         const amount = booking.provider_data?.amount || (booking.amount_cents / 100);
         const currency = booking.provider_data?.currency || booking.currency || 'USD';
+        
+        // Get airline logo - prefer airlineCode (IATA) if available, fallback to airline name
+        const airlineLogo = airlineCode ? getAirlineLogo(airlineCode) : getAirlineLogo(airline);
 
         return `
             <div class="flight-card bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200">
@@ -255,7 +329,10 @@ class BookingsManager {
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center space-x-4 w-full">
                                 <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                                    <img src="/img/airline-icon.png" alt="Airline" class="w-6 h-6" onerror="this.outerHTML='<i class=\\'fas fa-plane text-yellow-600\\'></i>'">
+                                    ${airlineLogo 
+                                        ? `<img src="${airlineLogo}" alt="${airline}" class="w-6 h-6 object-contain" onerror="this.outerHTML='<i class=\\'fas fa-plane text-yellow-600\\'></i>'">`
+                                        : `<i class="fas fa-plane text-yellow-600"></i>`
+                                    }
                                 </div>
                                     <div class="flex items-center justify-between text-lg font-semibold mb-1 flex-1 w-full">
                                           <span class="flex items-center space-x-2">

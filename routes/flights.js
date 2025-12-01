@@ -35,15 +35,38 @@ async function searchDuffelFlights(searchParams) {
 async function searchAmadeusFlights(params, accessToken) {
   try {
     console.log('🟠 Searching Amadeus...');
+    console.log('🔍 Amadeus request params:', JSON.stringify(params, null, 2));
+    
     const searchResponse = await amadeusAPI.get('/v2/shopping/flight-offers', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       },
       params: params
     });
-    console.log(`✅ Amadeus returned ${searchResponse.data.data?.length || 0} offers`);
+    
+    const offers = searchResponse.data.data || [];
+    console.log(`✅ Amadeus returned ${offers.length} offers`);
+    
+    // Log currency information from Amadeus response
+    if (offers.length > 0) {
+      const firstOffer = offers[0];
+      const currency = firstOffer.price?.currency;
+      const total = firstOffer.price?.total || firstOffer.price?.grandTotal;
+      console.log(`💰 Amadeus Currency: ${currency}`);
+      console.log(`💵 First offer price: ${currency} ${total}`);
+      console.log(`📋 First offer price object:`, JSON.stringify(firstOffer.price, null, 2));
+      
+      // Check if all offers have the same currency
+      const currencies = new Set(offers.map(o => o.price?.currency));
+      if (currencies.size > 1) {
+        console.log(`⚠️  WARNING: Multiple currencies detected:`, Array.from(currencies));
+      } else {
+        console.log(`✅ All ${offers.length} offers are in ${currency}`);
+      }
+    }
+    
     return {
-      offers: searchResponse.data.data || [],
+      offers: offers,
       dictionaries: searchResponse.data.dictionaries || {}
     };
   } catch (error) {
@@ -75,7 +98,8 @@ router.post('/test-amadeus-search', async (req, res) => {
       destinationLocationCode: destination,
       departureDate: departureDate,
       adults: passengers?.filter(p => p.type === 'adult')?.length || 1,
-      travelClass: cabinClass?.toUpperCase() || 'ECONOMY'
+      travelClass: cabinClass?.toUpperCase() || 'ECONOMY',
+      currencyCode: 'USD' // Force USD currency instead of EUR default
     };
     
     // Add return date if provided
@@ -169,6 +193,7 @@ router.post('/search-flights', async (req, res) => {
       departureDate: departureDate,
       adults: passengers?.filter(p => p.type === 'adult')?.length || 1,
       travelClass: (cabinClass || 'economy').toUpperCase(),
+      currencyCode: 'USD', // Force USD currency instead of EUR default
       max: 10 // Limit results
     };
 
@@ -281,61 +306,115 @@ router.post('/search-flights', async (req, res) => {
   }
 });
 
-// Create order (booking)
+// Create order (booking) - Supports both Duffel and Amadeus
 router.post('/book-flight', async (req, res) => {
   try {
-    console.log('🚀 ===== DUFFEL BOOKING STARTED =====');
+    console.log('🚀 ===== FLIGHT BOOKING STARTED =====');
     console.log('📅 Timestamp:', new Date().toISOString());
     console.log('🌐 Request URL:', req.url);
     console.log('📍 Request method:', req.method);
     
-    const { offer_id, passengers, total_amount, total_currency } = req.body;
+    const { offer_id, passengers, total_amount, total_currency, data_source } = req.body;
     
     console.log('🎫 Booking request details:', {
       offer_id,
       passenger_count: passengers?.length || 0,
       total_amount,
-      total_currency
+      total_currency,
+      data_source: data_source || 'duffel'
     });
     console.log('📋 Full request body:', JSON.stringify(req.body, null, 2));
     
-    // Log passengers for debugging
-    console.log('👥 Passengers data:', JSON.stringify(passengers, null, 2));
+    // Route to appropriate booking handler based on data source
+    const source = data_source || 'duffel';
     
-    // CRITICAL: DO NOT remove passenger IDs! They are required by Duffel API
-    // The IDs come from the offer request and must be preserved for booking
-    console.log('✅ Using passengers with original IDs (required by Duffel):', JSON.stringify(passengers, null, 2));
-
-    // Build booking data exactly as Duffel API expects
-    const bookingData = {
-      data: {
-        selected_offers: [offer_id],
-        passengers: passengers, // Use original passengers with their IDs
-        payments: [
-          {
-            type: 'balance',
-            currency: total_currency,
-            amount: total_amount
+    if (source === 'amadeus') {
+      // Amadeus booking flow
+      console.log('🟠 ===== PROCESSING AMADEUS BOOKING =====');
+      console.log('⚠️  Note: Amadeus booking requires Flight Create Orders API');
+      console.log('📋 For now, returning mock success for Amadeus bookings');
+      
+      // TODO: Implement actual Amadeus Flight Create Orders API
+      // Reference: https://developers.amadeus.com/self-service/category/flights/api-doc/flight-create-orders
+      
+      const mockAmadeusBooking = {
+        success: true,
+        source: 'amadeus',
+        data: {
+          id: `amadeus_booking_${Date.now()}`,
+          type: 'flight-order',
+          queuingOfficeId: 'AMADEUS_OFFICE',
+          associatedRecords: [{
+            reference: `PNR${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            creationDate: new Date().toISOString(),
+            originSystemCode: 'GDS',
+            flightOfferId: offer_id
+          }],
+          travelers: passengers.map((p, index) => ({
+            id: index + 1,
+            ...p
+          })),
+          flightOffers: [{
+            type: 'flight-offer',
+            id: offer_id,
+            price: {
+              currency: total_currency,
+              total: total_amount,
+              base: total_amount
+            }
+          }],
+          ticketingAgreement: {
+            option: 'CONFIRM',
+            delay: '6D'
           }
-        ],
-        type: 'instant'
-      }
-    };
+        }
+      };
+      
+      console.log('✅ Amadeus mock booking created');
+      console.log('� Mock response:', JSON.stringify(mockAmadeusBooking, null, 2));
+      console.log('🏁 ===== AMADEUS BOOKING COMPLETED =====');
+      
+      return res.json(mockAmadeusBooking);
+    } else {
+      // Duffel booking flow (existing code)
+      console.log('🔵 ===== PROCESSING DUFFEL BOOKING =====');
+      console.log('�👥 Passengers data:', JSON.stringify(passengers, null, 2));
+      
+      // CRITICAL: DO NOT remove passenger IDs! They are required by Duffel API
+      // The IDs come from the offer request and must be preserved for booking
+      console.log('✅ Using passengers with original IDs (required by Duffel):', JSON.stringify(passengers, null, 2));
 
-    console.log('📤 Sending to Duffel API...');
-    console.log('📋 Payload:', JSON.stringify(bookingData, null, 2));
-    
-    const response = await duffelAPI.post('/air/orders', bookingData);
-    
-    console.log('✅ Duffel API response received');
-    console.log('📊 Response status:', response.status);
-    console.log('🎫 Booking ID:', response.data?.data?.id);
-    console.log('📋 Full response:', JSON.stringify(response.data, null, 2));
-    console.log('🏁 ===== DUFFEL BOOKING COMPLETED =====');
-    
-    res.json(response.data);
+      // Build booking data exactly as Duffel API expects
+      const bookingData = {
+        data: {
+          selected_offers: [offer_id],
+          passengers: passengers, // Use original passengers with their IDs
+          payments: [
+            {
+              type: 'balance',
+              currency: total_currency,
+              amount: total_amount
+            }
+          ],
+          type: 'instant'
+        }
+      };
+
+      console.log('📤 Sending to Duffel API...');
+      console.log('📋 Payload:', JSON.stringify(bookingData, null, 2));
+      
+      const response = await duffelAPI.post('/air/orders', bookingData);
+      
+      console.log('✅ Duffel API response received');
+      console.log('📊 Response status:', response.status);
+      console.log('🎫 Booking ID:', response.data?.data?.id);
+      console.log('📋 Full response:', JSON.stringify(response.data, null, 2));
+      console.log('🏁 ===== DUFFEL BOOKING COMPLETED =====');
+      
+      res.json(response.data);
+    }
   } catch (error) {
-    console.error('💥 ===== DUFFEL BOOKING ERROR =====');
+    console.error('💥 ===== BOOKING ERROR =====');
     console.error('❌ Error message:', error.message);
     console.error('📊 Error status:', error.response?.status);
     console.error('📋 Error data:', error.response?.data);
